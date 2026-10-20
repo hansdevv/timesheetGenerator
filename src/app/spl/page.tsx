@@ -6,6 +6,19 @@ import type { SPLData, SPLEntry } from "@/lib/types";
 import { calcHours, loadTimesheetDraft } from "@/lib/types";
 import { exportSPLExcel } from "@/lib/excel-export";
 import { getSampleSPLData } from "@/lib/sample-data";
+import {
+  FileTextIcon,
+  SparklesIcon,
+  RefreshIcon,
+  UserIcon,
+  EditIcon,
+  PlusIcon,
+  TrashIcon,
+  DownloadIcon,
+  AlertCircleIcon,
+  CheckCircleIcon,
+  ClockIcon,
+} from "@/components/Icons";
 
 export default function SPLPage() {
   const [data, setData] = useState<SPLData>(() => {
@@ -187,29 +200,32 @@ export default function SPLPage() {
             display: "flex",
             alignItems: "center",
             gap: "10px",
-            padding: "12px 20px",
-            borderRadius: "var(--radius-md)",
-            background:
+            padding: "10px 16px",
+            borderRadius: "var(--radius-sm)",
+            background: "var(--bg-card)",
+            color: "var(--text-hi)",
+            boxShadow: "var(--shadow-elevated)",
+            border: `1px solid ${
               toastMsg.type === "success"
-                ? "rgba(6, 78, 59, 0.95)"
+                ? "var(--green)"
                 : toastMsg.type === "warning"
-                ? "rgba(120, 53, 15, 0.95)"
-                : "rgba(30, 58, 138, 0.95)",
-            color: "#ffffff",
-            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            backdropFilter: "blur(12px)",
+                ? "var(--amber)"
+                : "var(--accent)"
+            }`,
             fontWeight: 500,
-            fontSize: "0.875rem",
+            fontSize: "0.85rem",
             maxWidth: "460px",
           }}
           className="animate-fade-in"
         >
-          <span>{toastMsg.type === "success" ? "✅" : toastMsg.type === "warning" ? "⚠️" : "ℹ️"}</span>
+          <span style={{ color: toastMsg.type === "success" ? "var(--green)" : toastMsg.type === "warning" ? "var(--amber)" : "var(--accent)" }}>
+            {toastMsg.type === "success" ? <CheckCircleIcon size={16} /> : <AlertCircleIcon size={16} />}
+          </span>
           <span style={{ flex: 1 }}>{toastMsg.text}</span>
           <button
             onClick={() => setToastMsg(null)}
-            style={{ background: "none", border: "none", color: "white", cursor: "pointer", opacity: 0.7 }}
+            style={{ background: "none", border: "none", color: "var(--text-lo)", cursor: "pointer", padding: "2px 4px", fontSize: "14px" }}
+            aria-label="Tutup notifikasi"
           >
             ✕
           </button>
@@ -217,15 +233,11 @@ export default function SPLPage() {
       )}
 
       <div className="page-header animate-fade-in">
-        <div className="page-badge">
-          <span>🌙</span>
-          <span>Surat Perintah Lembur Resmi</span>
-        </div>
         <h1 className="page-title">
-          Generator <span className="page-title-gradient">Surat Lembur (SPL)</span>
+          Surat Perintah Lembur (SPL) Adidata
         </h1>
         <p className="page-subtitle">
-          Format resmi Adidata lengkap dengan penomoran, rincian pekerjaan, durasi jam kerja lembur, dan verifikasi tanda tangan atasan.
+          Formulir lembur resmi Adidata dengan format penomoran, rincian pekerjaan, durasi jam kerja lembur, dan verifikasi tanda tangan atasan.
         </p>
       </div>
 
@@ -243,11 +255,11 @@ export default function SPLPage() {
           }}
         >
           <div>
-            <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>
-              Otomasi Data Surat Lembur
+            <div style={{ fontWeight: 700, color: "var(--text-hi)", fontSize: "0.95rem" }}>
+              Sinkronisasi Data Lembur
             </div>
-            <div style={{ fontSize: "0.825rem", color: "var(--text-secondary)" }}>
-              Sinkronkan pegawai dan hari kerja lembur langsung dari Timesheet tanpa ketik ulang.
+            <div style={{ fontSize: "0.82rem", color: "var(--text-mid)", marginTop: "2px" }}>
+              Tarik otomatis data pegawai dan hari lembur langsung dari Timesheet tanpa input ulang.
             </div>
           </div>
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -256,14 +268,16 @@ export default function SPLPage() {
               className="btn btn-secondary btn-sm"
               onClick={handleSyncFromTimesheet}
             >
-              🔄 Tarik Data dari Timesheet
+              <RefreshIcon size={13} />
+              <span>Tarik dari Timesheet</span>
             </button>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
               onClick={handleLoadSample}
             >
-              ⚡ Muat Contoh Template (Tgl 12)
+              <SparklesIcon size={13} />
+              <span>Muat Contoh Data</span>
             </button>
           </div>
         </div>
@@ -272,7 +286,9 @@ export default function SPLPage() {
         <div className="card" style={{ marginBottom: "1.25rem" }}>
           <div className="card-header">
             <div className="card-title">
-              <div className="card-icon">👤</div>
+              <div className="card-icon">
+                <UserIcon size={15} />
+              </div>
               <span>Data Pegawai yang Ditugaskan</span>
             </div>
           </div>
@@ -330,27 +346,30 @@ export default function SPLPage() {
           <div className="card-header">
             <div>
               <div className="card-title">
-                <div className="card-icon">📝</div>
-                <span>Daftar Hari & Tugas Lembur ({data.entries.length} Hari)</span>
+                <div className="card-icon">
+                  <FileTextIcon size={15} />
+                </div>
+                <span>Daftar Hari &amp; Tugas Lembur ({data.entries.length} Hari)</span>
               </div>
               <div className="card-subtitle">
                 Isi tanggal lembur, rentang waktu, dan rincian pekerjaan yang dilakukan
               </div>
             </div>
             <button type="button" className="btn btn-primary btn-sm" onClick={addEntry}>
-              + Tambah Hari Lembur
+              <PlusIcon size={13} />
+              <span>Tambah Hari Lembur</span>
             </button>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {data.entries.map((entry, idx) => (
               <div
                 key={idx}
                 style={{
-                  background: "rgba(255, 255, 255, 0.02)",
-                  border: "1px solid var(--border-color)",
-                  borderRadius: "var(--radius-md)",
-                  padding: "1.25rem",
+                  background: "var(--bg-card-subtle)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "1.2rem",
                 }}
               >
                 <div
@@ -364,12 +383,13 @@ export default function SPLPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span
                       style={{
-                        background: "rgba(99, 102, 241, 0.2)",
-                        color: "var(--accent-indigo)",
+                        background: "var(--accent-dim)",
+                        border: "1px solid var(--accent-dim-border)",
+                        color: "var(--accent)",
                         fontWeight: 700,
-                        fontSize: "0.8rem",
+                        fontSize: "0.76rem",
                         padding: "2px 8px",
-                        borderRadius: "6px",
+                        borderRadius: "var(--radius-xs)",
                       }}
                     >
                       Penugasan #{entry.no}
@@ -377,13 +397,17 @@ export default function SPLPage() {
                     {entry.totalHours ? (
                       <span
                         style={{
-                          fontFamily: "JetBrains Mono, monospace",
-                          fontSize: "0.8rem",
+                          fontFamily: "var(--font-mono, monospace)",
+                          fontSize: "0.78rem",
                           fontWeight: 700,
-                          color: "var(--accent-amber)",
+                          color: "var(--amber-text)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
                         }}
                       >
-                        ⏱️ {entry.totalHours} Jam Lembur
+                        <ClockIcon size={13} />
+                        <span>{entry.totalHours} Jam Lembur</span>
                       </span>
                     ) : null}
                   </div>
@@ -393,9 +417,10 @@ export default function SPLPage() {
                       type="button"
                       className="btn btn-ghost btn-sm"
                       onClick={() => removeEntry(idx)}
-                      style={{ color: "var(--accent-rose)" }}
+                      style={{ color: "var(--red)" }}
                     >
-                      Hapus
+                      <TrashIcon size={13} />
+                      <span>Hapus</span>
                     </button>
                   )}
                 </div>
@@ -434,7 +459,7 @@ export default function SPLPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <label className="form-label">
                       Rincian Pekerjaan yang Dilakukan
-                      <span className="hint">Mendukung multi-baris / poin nomor</span>
+                      <span className="hint">Mendukung multi-baris / nomor poin</span>
                     </label>
                     <button
                       type="button"
@@ -468,8 +493,10 @@ export default function SPLPage() {
         <div className="card" style={{ marginBottom: "1.25rem" }}>
           <div className="card-header">
             <div className="card-title">
-              <div className="card-icon">✍️</div>
-              <span>Pejabat Otorisasi & Tanda Tangan SPL</span>
+              <div className="card-icon">
+                <EditIcon size={15} />
+              </div>
+              <span>Pejabat Otorisasi &amp; Tanda Tangan SPL</span>
             </div>
           </div>
 
@@ -521,11 +548,11 @@ export default function SPLPage() {
         <div className="card">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
             <div>
-              <div style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "1.05rem" }}>
-                Generate File SPL Excel Resmi (.xlsx)
+              <div style={{ fontWeight: 700, color: "var(--text-hi)", fontSize: "1rem" }}>
+                Generate Dokumen SPL Excel (.xlsx)
               </div>
-              <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                Template resmi Adidata dengan format penugasan, logo, dan tanda tangan lengkap.
+              <div style={{ fontSize: "0.82rem", color: "var(--text-mid)", marginTop: "2px" }}>
+                Format resmi Adidata lengkap dengan logo, rincian jam lembur, dan kolom tanda tangan.
               </div>
             </div>
             <button
@@ -534,7 +561,8 @@ export default function SPLPage() {
               onClick={handleExport}
               disabled={isExporting || !data.name || !data.npp}
             >
-              {isExporting ? "⏳ Memproses Template..." : "⬇️ Download SPL Excel (.xlsx)"}
+              <DownloadIcon size={16} />
+              <span>{isExporting ? "Memproses Dokumen..." : "Download SPL Excel (.xlsx)"}</span>
             </button>
           </div>
         </div>

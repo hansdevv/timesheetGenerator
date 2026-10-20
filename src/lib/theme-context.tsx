@@ -2,41 +2,66 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-type Theme = "dark" | "light";
+export type Theme = "dark" | "light";
 
 interface ThemeContextValue {
   theme: Theme;
   toggle: () => void;
+  setThemeMode: (mode: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: "dark",
   toggle: () => {},
+  setThemeMode: () => {},
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window !== "undefined") {
+      const currentAttr = document.documentElement.getAttribute("data-theme") as Theme | null;
+      if (currentAttr === "light" || currentAttr === "dark") return currentAttr;
+      const saved = localStorage.getItem("ts-theme") as Theme | null;
+      if (saved === "light" || saved === "dark") return saved;
+      return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    }
+    return "dark";
+  });
 
-  // Hydrate from localStorage on mount
+  // Ensure DOM attribute matches active state
   useEffect(() => {
-    const saved = localStorage.getItem("ts-theme") as Theme | null;
-    const preferred =
-      saved ?? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
-    setTheme(preferred);
-    document.documentElement.setAttribute("data-theme", preferred);
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
+
+  // Listen to OS system theme changes if user hasn't saved an explicit preference
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: light)");
+    const handler = (e: MediaQueryListEvent) => {
+      const saved = localStorage.getItem("ts-theme");
+      if (!saved) {
+        setTheme(e.matches ? "light" : "dark");
+      }
+    };
+    media.addEventListener("change", handler);
+    return () => media.removeEventListener("change", handler);
   }, []);
 
+  const setThemeMode = (newTheme: Theme) => {
+    setTheme(newTheme);
+    try {
+      localStorage.setItem("ts-theme", newTheme);
+      document.documentElement.setAttribute("data-theme", newTheme);
+    } catch {
+      // ignore in restricted iframe/incognito
+    }
+  };
+
   const toggle = () => {
-    setTheme((prev) => {
-      const next: Theme = prev === "dark" ? "light" : "dark";
-      localStorage.setItem("ts-theme", next);
-      document.documentElement.setAttribute("data-theme", next);
-      return next;
-    });
+    setThemeMode(theme === "dark" ? "light" : "dark");
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggle }}>
+    <ThemeContext.Provider value={{ theme, toggle, setThemeMode }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -17,6 +17,25 @@ import {
 import { exportTimesheetExcel, exportSPLExcel } from "@/lib/excel-export";
 import { exportTimesheetPDF } from "@/lib/pdf-export";
 import { SAMPLE_HEADER, getSampleTimesheetRows } from "@/lib/sample-data";
+import {
+  ClockIcon,
+  BriefcaseIcon,
+  UserIcon,
+  MoonIcon,
+  AlertCircleIcon,
+  CheckCircleIcon,
+  DownloadIcon,
+  PrinterIcon,
+  CopyIcon,
+  SearchIcon,
+  SparklesIcon,
+  EditIcon,
+  PlusIcon,
+  SlidersIcon,
+  FileTextIcon,
+  UmbrellafillIcon,
+  ArchiveIcon,
+} from "@/components/Icons";
 
 // ===== Initial State =====
 const CURRENT_DATE = new Date();
@@ -346,43 +365,45 @@ export default function TimesheetGenerator() {
             display: "flex",
             alignItems: "center",
             gap: "10px",
-            padding: "12px 20px",
-            borderRadius: "var(--radius-md)",
-            background:
+            padding: "10px 16px",
+            borderRadius: "var(--radius-sm)",
+            background: "var(--bg-card)",
+            color: "var(--text-hi)",
+            boxShadow: "var(--shadow-elevated)",
+            border: `1px solid ${
               toastMsg.type === "success"
-                ? "rgba(6, 78, 59, 0.95)"
+                ? "var(--green)"
                 : toastMsg.type === "warning"
-                ? "rgba(120, 53, 15, 0.95)"
-                : "rgba(30, 58, 138, 0.95)",
-            color: "#ffffff",
-            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            backdropFilter: "blur(12px)",
+                ? "var(--amber)"
+                : "var(--accent)"
+            }`,
             fontWeight: 500,
-            fontSize: "0.875rem",
+            fontSize: "0.85rem",
             maxWidth: "460px",
           }}
           className="animate-fade-in"
         >
-          <span>{toastMsg.type === "success" ? "✅" : toastMsg.type === "warning" ? "⚠️" : "ℹ️"}</span>
+          <span style={{ color: toastMsg.type === "success" ? "var(--green)" : toastMsg.type === "warning" ? "var(--amber)" : "var(--accent)" }}>
+            {toastMsg.type === "success" ? <CheckCircleIcon size={16} /> : <AlertCircleIcon size={16} />}
+          </span>
           <span style={{ flex: 1 }}>{toastMsg.text}</span>
           <button
             onClick={() => setToastMsg(null)}
-            style={{ background: "none", border: "none", color: "white", cursor: "pointer", opacity: 0.7 }}
+            style={{ background: "none", border: "none", color: "var(--text-lo)", cursor: "pointer", padding: "2px 4px", fontSize: "14px" }}
+            aria-label="Tutup notifikasi"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Hero / Page Header */}
+      {/* Page Header */}
       <div className="page-header">
-        <div className="page-badge">Template Resmi Adidata</div>
         <h1 className="page-title">
-          Timesheet &amp; <em>Surat Lembur</em>
+          Timesheet &amp; Surat Lembur Adidata
         </h1>
         <p className="page-subtitle">
-          Input aktivitas harian, jam kerja dihitung otomatis termasuk potongan istirahat (Jumat 1.5 jam, lainnya 1 jam), export ke Excel resmi sekali klik.
+          Pencatatan jam kerja harian, lembur, dan ekspor dokumen resmi Adidata dengan perhitungan potongan istirahat otomatis (Jumat 1.5 jam, hari lain 1 jam).
         </p>
       </div>
 
@@ -403,16 +424,17 @@ export default function TimesheetGenerator() {
             className={`stepper-item ${activeTab === "spl" ? "active" : ""}`}
             onClick={() => setActiveTab("spl")}
           >
-            <span className="stepper-badge">{overtimeRows.length > 0 ? "⚡" : "2"}</span>
+            <span className="stepper-badge">2</span>
             <span>Surat Lembur (SPL)</span>
             {overtimeRows.length > 0 && (
               <span
                 style={{
-                  background: "var(--accent-amber)",
-                  color: "#000",
+                  background: "var(--amber-dim)",
+                  border: "1px solid var(--amber-dim-border)",
+                  color: "var(--amber-text)",
                   padding: "1px 6px",
-                  borderRadius: "10px",
-                  fontSize: "0.7rem",
+                  borderRadius: "9999px",
+                  fontSize: "0.68rem",
                   fontWeight: 700,
                 }}
               >
@@ -447,55 +469,58 @@ export default function TimesheetGenerator() {
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <div
                 style={{
-                  width: "44px",
-                  height: "44px",
+                  width: "40px",
+                  height: "40px",
                   borderRadius: "var(--radius-sm)",
-                  background: "var(--gradient-brand)",
+                  background: "var(--accent-dim)",
+                  border: "1px solid var(--accent-dim-border)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "20px",
-                  color: "white",
+                  color: "var(--accent)",
                   flexShrink: 0,
                 }}
               >
-                👤
+                <UserIcon size={18} />
               </div>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                  <span style={{ fontSize: "1.02rem", fontWeight: 700, color: "var(--text-hi)" }}>
                     {header.name || "Nama Karyawan"}
                   </span>
                   <span
                     style={{
-                      fontFamily: "JetBrains Mono, monospace",
-                      fontSize: "0.8rem",
-                      background: "rgba(255, 255, 255, 0.08)",
-                      padding: "2px 8px",
-                      borderRadius: "6px",
-                      color: "var(--text-secondary)",
+                      fontFamily: "var(--font-mono, monospace)",
+                      fontSize: "0.76rem",
+                      background: "var(--btn-secondary-bg)",
+                      border: "1px solid var(--border)",
+                      padding: "2px 7px",
+                      borderRadius: "var(--radius-xs)",
+                      color: "var(--text-mid)",
+                      fontWeight: 600,
                     }}
                   >
-                    NPP: {header.npp || "-"}
+                    NPP {header.npp || "-"}
                   </span>
                   <span
                     style={{
-                      fontSize: "0.75rem",
-                      background: "rgba(99, 102, 241, 0.15)",
-                      color: "var(--accent-indigo)",
-                      padding: "2px 8px",
-                      borderRadius: "6px",
+                      fontSize: "0.74rem",
+                      background: "var(--accent-dim)",
+                      border: "1px solid var(--accent-dim-border)",
+                      color: "var(--accent)",
+                      padding: "2px 7px",
+                      borderRadius: "var(--radius-xs)",
                       fontWeight: 600,
                     }}
                   >
                     {header.department || "EDV / ADV"}
                   </span>
                 </div>
-                <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "3px" }}>
-                  💼 <strong>{header.projectName || "Proyek"}</strong> ({header.projectId || "ID"}) • Periode:{" "}
-                  <strong style={{ color: "#a5b4fc" }}>
-                    {MONTH_NAMES_TITLE[header.month - 1]} {header.year}
-                  </strong>
+                <div style={{ fontSize: "0.82rem", color: "var(--text-mid)", marginTop: "4px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                  <BriefcaseIcon size={13} />
+                  <span><strong>{header.projectName || "Proyek"}</strong> ({header.projectId || "ID"})</span>
+                  <span>•</span>
+                  <span>Periode: <strong>{MONTH_NAMES_TITLE[header.month - 1]} {header.year}</strong></span>
                 </div>
               </div>
             </div>
@@ -508,14 +533,16 @@ export default function TimesheetGenerator() {
                 onClick={handleLoadSample}
                 title="Muat contoh data resmi September 2026"
               >
-                ⚡ Muat Contoh Adidata
+                <SparklesIcon size={13} />
+                <span>Muat Contoh Data</span>
               </button>
               <button
                 type="button"
                 className={`btn btn-sm ${showProfileDrawer ? "btn-primary" : "btn-secondary"}`}
                 onClick={() => setShowProfileDrawer(!showProfileDrawer)}
               >
-                {showProfileDrawer ? "▲ Tutup Form Detail" : "✏️ Edit Info & TTD"}
+                <EditIcon size={13} />
+                <span>{showProfileDrawer ? "Tutup Form Detail" : "Edit Info & TTD"}</span>
               </button>
             </div>
           </div>
@@ -731,7 +758,7 @@ export default function TimesheetGenerator() {
           <div className="stat-card stat-card-highlight">
             <div className="stat-header">
               <span className="stat-label">Total Jam Kerja</span>
-              <span className="stat-icon">⏱️</span>
+              <span className="stat-icon"><ClockIcon size={15} /></span>
             </div>
             <div className="stat-value">{summary.totalHours.toFixed(1)}h</div>
             <div className="stat-subtext">Netto setelah potong istirahat</div>
@@ -740,9 +767,9 @@ export default function TimesheetGenerator() {
           <div className="stat-card">
             <div className="stat-header">
               <span className="stat-label">Hari Masuk (P)</span>
-              <span className="stat-icon">💼</span>
+              <span className="stat-icon"><BriefcaseIcon size={15} /></span>
             </div>
-            <div className="stat-value" style={{ color: "var(--accent-emerald)" }}>
+            <div className="stat-value" style={{ color: "var(--green)" }}>
               {summary.present}
             </div>
             <div className="stat-subtext">Dari {rows.length} total hari kalender</div>
@@ -751,20 +778,20 @@ export default function TimesheetGenerator() {
           <div className="stat-card">
             <div className="stat-header">
               <span className="stat-label">Lembur / SPL</span>
-              <span className="stat-icon">🌙</span>
+              <span className="stat-icon"><MoonIcon size={15} /></span>
             </div>
-            <div className="stat-value" style={{ color: overtimeRows.length > 0 ? "var(--accent-amber)" : "var(--text-muted)" }}>
+            <div className="stat-value" style={{ color: overtimeRows.length > 0 ? "var(--amber-text)" : "var(--text-mid)" }}>
               {overtimeRows.length} Hari
             </div>
             <div className="stat-subtext">
-              {overtimeRows.length > 0 ? "Siap diexport ke file SPL" : "Belum ada lembur"}
+              {overtimeRows.length > 0 ? "Siap diekspor ke format SPL" : "Tidak ada lembur"}
             </div>
           </div>
 
           <div className="stat-card">
             <div className="stat-header">
               <span className="stat-label">Cuti / Sakit / Izin</span>
-              <span className="stat-icon">🏖️</span>
+              <span className="stat-icon"><UmbrellafillIcon size={15} /></span>
             </div>
             <div className="stat-value">
               {summary.sick + summary.vacation + summary.permit}
@@ -777,20 +804,22 @@ export default function TimesheetGenerator() {
           <div className="stat-card">
             <div className="stat-header">
               <span className="stat-label">Status Pengisian</span>
-              <span className="stat-icon">{emptyActivityCount === 0 ? "✅" : "⚠️"}</span>
+              <span className="stat-icon">
+                {emptyActivityCount === 0 ? <CheckCircleIcon size={15} /> : <AlertCircleIcon size={15} />}
+              </span>
             </div>
             <div
               className="stat-value"
               style={{
                 fontSize: "1.15rem",
-                color: emptyActivityCount === 0 ? "var(--accent-emerald)" : "var(--accent-amber)",
+                color: emptyActivityCount === 0 ? "var(--green)" : "var(--amber-text)",
                 paddingTop: "6px",
               }}
             >
               {emptyActivityCount === 0 ? "Lengkap" : `${emptyActivityCount} Kosong`}
             </div>
             <div className="stat-subtext">
-              {emptyActivityCount === 0 ? "Semua hari kerja memiliki deskripsi" : "Ada hari kerja tanpa remark"}
+              {emptyActivityCount === 0 ? "Semua hari kerja memiliki remark" : "Ada hari kerja tanpa remark"}
             </div>
           </div>
         </div>
@@ -842,14 +871,19 @@ export default function TimesheetGenerator() {
 
               {/* Search & Mode Toggle */}
               <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                <input
-                  type="text"
-                  className="table-input-compact"
-                  placeholder="🔍 Cari aktivitas..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ width: "160px" }}
-                />
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    className="table-input-compact"
+                    placeholder="Cari aktivitas..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ width: "160px", paddingLeft: "26px" }}
+                  />
+                  <div style={{ position: "absolute", left: "8px", pointerEvents: "none", color: "var(--text-lo)", display: "flex", alignItems: "center" }}>
+                    <SearchIcon size={12} />
+                  </div>
+                </div>
 
                 <button
                   type="button"
@@ -857,7 +891,8 @@ export default function TimesheetGenerator() {
                   onClick={() => setShowProjectColumns(!showProjectColumns)}
                   title="Tampilkan / sembunyikan kolom Project Name, ID, App, Fitur"
                 >
-                  {showProjectColumns ? "✕ Kolom Ringkas" : "📑 Mode Kolom Proyek"}
+                  <SlidersIcon size={13} />
+                  <span>{showProjectColumns ? "Kolom Ringkas" : "Kolom Proyek"}</span>
                 </button>
 
                 <button
@@ -865,7 +900,8 @@ export default function TimesheetGenerator() {
                   className="btn btn-primary btn-sm"
                   onClick={() => setShowQuickFillModal(true)}
                 >
-                  ⚡ Isi Cepat Jam Kerja
+                  <SparklesIcon size={13} />
+                  <span>Isi Cepat Jam Kerja</span>
                 </button>
               </div>
             </div>
@@ -876,16 +912,16 @@ export default function TimesheetGenerator() {
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                padding: "8px 12px",
-                background: "rgba(255, 255, 255, 0.02)",
+                padding: "6px 12px",
+                background: "var(--bg-card-subtle)",
                 borderRadius: "var(--radius-sm)",
                 marginBottom: "12px",
-                border: "1px dashed var(--border-color)",
+                border: "1px solid var(--border)",
                 overflowX: "auto",
               }}
             >
-              <span style={{ fontSize: "0.73rem", fontWeight: 600, color: "var(--text-lo)", whiteSpace: "nowrap" }}>
-                Isi cepat aktivitas kosong:
+              <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-lo)", whiteSpace: "nowrap" }}>
+                Preset aktivitas kosong:
               </span>
               {TASK_PRESETS.slice(0, 4).map((task) => (
                 <button
@@ -893,7 +929,7 @@ export default function TimesheetGenerator() {
                   type="button"
                   onClick={() => handleApplyTaskPresetToEmpty(task)}
                   className="btn btn-ghost btn-sm"
-                  style={{ fontSize: "0.75rem", padding: "3px 8px" }}
+                  style={{ fontSize: "0.74rem", padding: "3px 8px" }}
                   title="Klik untuk mengisi hari kerja yang aktivitasnya masih kosong"
                 >
                   + {task}
@@ -1075,13 +1111,14 @@ export default function TimesheetGenerator() {
                                   style={{
                                     position: "absolute",
                                     right: "8px",
-                                    fontSize: "0.75rem",
-                                    color: "var(--accent-amber)",
+                                    color: "var(--amber-text)",
                                     pointerEvents: "none",
+                                    display: "flex",
+                                    alignItems: "center",
                                   }}
                                   title="Aktivitas masih kosong"
                                 >
-                                  ⚠️
+                                  <AlertCircleIcon size={13} />
                                 </span>
                               )}
                             </div>
@@ -1142,26 +1179,28 @@ export default function TimesheetGenerator() {
                                 onClick={() => handleAddWeekendOvertime(row.id)}
                                 style={{
                                   fontSize: "0.72rem",
-                                  padding: "3px 6px",
-                                  color: "var(--text-secondary)",
-                                  border: "1px dashed var(--border-color)",
+                                  padding: "3px 7px",
+                                  color: "var(--text-mid)",
+                                  border: "1px dashed var(--border-mid)",
                                 }}
                                 title="Catat jam kerja lembur di akhir pekan ini"
                               >
-                                + Lembur
+                                <PlusIcon size={11} />
+                                <span>Lembur</span>
                               </button>
                             ) : isWeekendWorking || row.totalHours > 8.5 ? (
                               <button
                                 type="button"
                                 className="btn btn-warning btn-sm"
                                 onClick={() => setSelectedSPLRow(row)}
-                                style={{ fontSize: "0.75rem", padding: "3px 8px", fontWeight: 700 }}
+                                style={{ fontSize: "0.74rem", padding: "3px 8px", fontWeight: 700 }}
                                 title="Generate Surat Perintah Lembur untuk hari ini"
                               >
-                                ⚡ SPL
+                                <FileTextIcon size={12} />
+                                <span>SPL</span>
                               </button>
                             ) : (
-                              <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>—</span>
+                              <span style={{ color: "var(--text-lo)", fontSize: "0.75rem" }}>—</span>
                             )}
                           </td>
                         </tr>
@@ -1183,20 +1222,22 @@ export default function TimesheetGenerator() {
                 gap: "1rem",
               }}
             >
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={handleCopySummary}
                 >
-                  Salin ringkasan (WA/Slack)
+                  <CopyIcon size={13} />
+                  <span>Salin Ringkasan (WA/Slack)</span>
                 </button>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={handleManualSaveArchive}
                 >
-                  Simpan ke riwayat
+                  <ArchiveIcon size={13} />
+                  <span>Simpan ke Riwayat</span>
                 </button>
               </div>
 
@@ -1207,7 +1248,7 @@ export default function TimesheetGenerator() {
                     className="btn btn-warning"
                     onClick={() => setActiveTab("spl")}
                   >
-                    Review {overtimeRows.length} SPL →
+                    <span>Review {overtimeRows.length} SPL →</span>
                   </button>
                 )}
                 <button
@@ -1215,7 +1256,7 @@ export default function TimesheetGenerator() {
                   className="btn btn-primary"
                   onClick={() => setActiveTab("export")}
                 >
-                  Ke Download & Cetak →
+                  <span>Ke Download &amp; Cetak →</span>
                 </button>
               </div>
             </div>
@@ -1252,17 +1293,19 @@ export default function TimesheetGenerator() {
               <div
                 style={{
                   textAlign: "center",
-                  padding: "3rem 1rem",
-                  background: "rgba(255, 255, 255, 0.02)",
+                  padding: "3rem 1.5rem",
+                  background: "var(--bg-card-subtle)",
                   borderRadius: "var(--radius-md)",
-                  border: "1px dashed var(--border-color)",
+                  border: "1px solid var(--border)",
                 }}
               >
-                <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🏖️</div>
-                <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                <div style={{ color: "var(--text-lo)", marginBottom: "0.75rem", display: "flex", justifyContent: "center" }}>
+                  <FileTextIcon size={32} />
+                </div>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--text-hi)" }}>
                   Belum Ada Hari Lembur yang Terdeteksi
                 </h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", maxWidth: "450px", margin: "0.5rem auto 1.25rem" }}>
+                <p style={{ color: "var(--text-mid)", fontSize: "0.85rem", maxWidth: "450px", margin: "0.4rem auto 1.25rem" }}>
                   Untuk mencatat lembur, buka <strong>Editor Timesheet</strong> lalu klik tombol <strong>+ Lembur</strong> di hari Sabtu/Minggu atau masukkan jam kerja di atas 8.5 jam.
                 </p>
                 <button
@@ -1274,11 +1317,11 @@ export default function TimesheetGenerator() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <div className="alert alert-info">
-                  <span>💡</span>
+                  <SparklesIcon size={16} />
                   <span>
-                    Ditemukan <strong>{overtimeRows.length} hari penugasan lembur</strong>. Anda dapat mengunduh file Excel SPL per tanggal di bawah ini sesuai template resmi Adidata.
+                    Ditemukan <strong>{overtimeRows.length} penugasan lembur</strong>. Unduh formulir SPL resmi Adidata per tanggal tugas di bawah ini.
                   </span>
                 </div>
 
@@ -1289,28 +1332,29 @@ export default function TimesheetGenerator() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      padding: "16px",
-                      background: "rgba(255, 255, 255, 0.03)",
-                      borderRadius: "var(--radius-md)",
-                      border: "1px solid var(--border-color)",
+                      padding: "14px 16px",
+                      background: "var(--bg-card-subtle)",
+                      borderRadius: "var(--radius-sm)",
+                      border: "1px solid var(--border)",
                       flexWrap: "wrap",
                       gap: "12px",
                     }}
                   >
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "0.95rem" }}>
+                        <span style={{ fontWeight: 700, color: "var(--text-hi)", fontSize: "0.92rem" }}>
                           Penugasan #{index + 1}: {ot.dayName}, {ot.date}
                         </span>
                         <span
                           style={{
-                            background: "rgba(245, 158, 11, 0.15)",
-                            color: "var(--accent-amber)",
-                            padding: "2px 8px",
-                            borderRadius: "6px",
+                            background: "var(--amber-dim)",
+                            border: "1px solid var(--amber-dim-border)",
+                            color: "var(--amber-text)",
+                            padding: "2px 7px",
+                            borderRadius: "var(--radius-xs)",
                             fontWeight: 700,
-                            fontSize: "0.78rem",
-                            fontFamily: "JetBrains Mono, monospace",
+                            fontSize: "0.75rem",
+                            fontFamily: "var(--font-mono, monospace)",
                           }}
                         >
                           {ot.startTime} - {ot.endTime} ({ot.totalHours} Jam)
@@ -1318,11 +1362,11 @@ export default function TimesheetGenerator() {
                       </div>
                       <div
                         style={{
-                          fontSize: "0.85rem",
-                          color: "var(--text-secondary)",
-                          marginTop: "6px",
+                          fontSize: "0.82rem",
+                          color: "var(--text-mid)",
+                          marginTop: "4px",
                           whiteSpace: "pre-line",
-                          lineHeight: 1.4,
+                          lineHeight: 1.45,
                         }}
                       >
                         {ot.activity || "Belum ada rincian tugas lembur..."}
@@ -1332,10 +1376,11 @@ export default function TimesheetGenerator() {
                     <div style={{ display: "flex", gap: "8px" }}>
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm"
+                        className="btn btn-secondary btn-sm"
                         onClick={() => setSelectedSPLRow(ot)}
                       >
-                        ✏️ Edit Tugas
+                        <EditIcon size={12} />
+                        <span>Edit Rincian</span>
                       </button>
                       <button
                         type="button"
@@ -1343,7 +1388,8 @@ export default function TimesheetGenerator() {
                         onClick={() => handleExportSingleSPL(ot)}
                         disabled={isExporting}
                       >
-                        ⬇️ Unduh SPL Excel
+                        <DownloadIcon size={12} />
+                        <span>Unduh SPL Excel</span>
                       </button>
                     </div>
                   </div>
@@ -1362,12 +1408,12 @@ export default function TimesheetGenerator() {
               <div>
                 <div className="card-title">
                   <div className="card-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <DownloadIcon size={15} />
                   </div>
                   <span>Export & Unduh Dokumen</span>
                 </div>
                 <div className="card-subtitle">
-                  Unduh file Timesheet Excel (.xlsx) resmi Adidata atau cetak format PDF.
+                  Unduh formulir Timesheet Excel (.xlsx) resmi Adidata atau cetak format PDF.
                 </div>
               </div>
               <button
@@ -1381,21 +1427,21 @@ export default function TimesheetGenerator() {
 
             {/* Validation Notice */}
             {emptyActivityCount > 0 ? (
-              <div className="alert alert-warning" style={{ marginBottom: "1.5rem" }}>
-                <span>⚠️</span>
+              <div className="alert alert-warning" style={{ marginBottom: "1.25rem" }}>
+                <AlertCircleIcon size={16} />
                 <span>
-                  Perhatian: Ada <strong>{emptyActivityCount} hari kerja</strong> yang kolom aktivitasnya belum diisi. Anda tetap bisa mengunduh Excel sekarang, namun disarankan melengkapinya terlebih dahulu.
+                  Perhatian: Terdapat <strong>{emptyActivityCount} hari kerja</strong> tanpa deskripsi aktivitas. Anda tetap dapat mengunduh dokumen, namun disarankan melengkapinya terlebih dahulu.
                 </span>
               </div>
             ) : (
-              <div className="alert alert-success" style={{ marginBottom: "1.5rem" }}>
-                <span>✅</span>
+              <div className="alert alert-success" style={{ marginBottom: "1.25rem" }}>
+                <CheckCircleIcon size={16} />
                 <span>
                   Timesheet <strong>{header.name}</strong> ({header.npp}) periode{" "}
                   <strong>
                     {MONTH_NAMES_TITLE[header.month - 1]} {header.year}
                   </strong>{" "}
-                  lengkap dan siap diexport.
+                  lengkap dan siap diekspor.
                 </span>
               </div>
             )}
@@ -1406,28 +1452,43 @@ export default function TimesheetGenerator() {
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
                 gap: "1rem",
-                marginBottom: "2rem",
+                marginBottom: "1.75rem",
               }}
             >
               <div
                 style={{
-                  background: "rgba(16, 185, 129, 0.08)",
-                  border: "1px solid rgba(16, 185, 129, 0.3)",
+                  background: "var(--bg-card-subtle)",
+                  border: "1px solid var(--border)",
                   borderRadius: "var(--radius-md)",
-                  padding: "1.5rem",
+                  padding: "1.25rem",
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--green)", flexShrink: 0 }}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "var(--radius-sm)",
+                      background: "var(--green-dim)",
+                      border: "1px solid var(--green-dim-border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--green)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <DownloadIcon size={18} />
+                  </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--text-primary)" }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-hi)" }}>
                       Timesheet Excel (.xlsx)
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-mid)" }}>
-                      Master template Adidata, rumus jam kerja sudah terpasang
+                    <div style={{ fontSize: "0.78rem", color: "var(--text-mid)" }}>
+                      Format resmi Adidata, kalkulasi jam kerja otomatis
                     </div>
                   </div>
                 </div>
@@ -1438,29 +1499,45 @@ export default function TimesheetGenerator() {
                   disabled={isExporting}
                   style={{ width: "100%", marginTop: "auto" }}
                 >
-                  {isExporting ? "Memproses..." : "Unduh Excel (.xlsx)"}
+                  <DownloadIcon size={15} />
+                  <span>{isExporting ? "Memproses..." : "Unduh Excel (.xlsx)"}</span>
                 </button>
               </div>
 
               <div
                 style={{
-                  background: "rgba(99, 102, 241, 0.08)",
-                  border: "1px solid rgba(99, 102, 241, 0.3)",
+                  background: "var(--bg-card-subtle)",
+                  border: "1px solid var(--border)",
                   borderRadius: "var(--radius-md)",
-                  padding: "1.5rem",
+                  padding: "1.25rem",
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-bright)", flexShrink: 0 }}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "var(--radius-sm)",
+                      background: "var(--accent-dim)",
+                      border: "1px solid var(--accent-dim-border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--accent)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <PrinterIcon size={18} />
+                  </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--text-primary)" }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-hi)" }}>
                       Cetak / PDF
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-mid)" }}>
-                      Format cetak landscape A4, lengkap dengan kolom tanda tangan
+                    <div style={{ fontSize: "0.78rem", color: "var(--text-mid)" }}>
+                      Format landscape A4 resmi dengan kolom tanda tangan
                     </div>
                   </div>
                 </div>
@@ -1470,29 +1547,45 @@ export default function TimesheetGenerator() {
                   onClick={handleExportPDF}
                   style={{ width: "100%", marginTop: "auto" }}
                 >
-                  Cetak / Simpan PDF
+                  <PrinterIcon size={15} />
+                  <span>Cetak / Simpan PDF</span>
                 </button>
               </div>
 
               <div
                 style={{
-                  background: "rgba(255, 255, 255, 0.03)",
-                  border: "1px solid var(--border-color)",
+                  background: "var(--bg-card-subtle)",
+                  border: "1px solid var(--border)",
                   borderRadius: "var(--radius-md)",
-                  padding: "1.5rem",
+                  padding: "1.25rem",
                   display: "flex",
                   flexDirection: "column",
                   gap: "12px",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-mid)", flexShrink: 0 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "var(--radius-sm)",
+                      background: "var(--btn-secondary-bg)",
+                      border: "1px solid var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--text-mid)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <CopyIcon size={18} />
+                  </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--text-primary)" }}>
-                      Salin ringkasan teks
+                    <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-hi)" }}>
+                      Salin Ringkasan Teks
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-mid)" }}>
-                      Format siap kirim ke Team Leader atau PM via WA/Slack
+                    <div style={{ fontSize: "0.78rem", color: "var(--text-mid)" }}>
+                      Format pelaporan siap kirim via WhatsApp atau Slack
                     </div>
                   </div>
                 </div>
@@ -1502,7 +1595,8 @@ export default function TimesheetGenerator() {
                   onClick={handleCopySummary}
                   style={{ width: "100%", marginTop: "auto" }}
                 >
-                  Salin teks ringkasan
+                  <CopyIcon size={15} />
+                  <span>Salin Teks Ringkasan</span>
                 </button>
               </div>
             </div>
@@ -1510,37 +1604,37 @@ export default function TimesheetGenerator() {
             {/* Document Verification Overview */}
             <div
               style={{
-                background: "rgba(255, 255, 255, 0.02)",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--border-color)",
+                background: "var(--bg-card-subtle)",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border)",
                 padding: "1.25rem",
               }}
             >
               <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-mid)", marginBottom: "1rem" }}>
-                Tanda tangan & otorisasi
+                Tanda tangan &amp; otorisasi
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "var(--text-lo)" }}>Pemeriksa 1 — Officer</div>
-                  <div style={{ fontWeight: 600, color: "var(--text-primary)", marginTop: "2px" }}>
+                  <div style={{ fontWeight: 600, color: "var(--text-hi)", marginTop: "2px" }}>
                     {header.officerName || "—"}
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "var(--text-lo)" }}>Pemeriksa 2 — Team Leader</div>
-                  <div style={{ fontWeight: 600, color: "var(--text-primary)", marginTop: "2px" }}>
+                  <div style={{ fontWeight: 600, color: "var(--text-hi)", marginTop: "2px" }}>
                     {header.managerName || "—"}
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "var(--text-lo)" }}>Menyetujui — Dept Head</div>
-                  <div style={{ fontWeight: 600, color: "var(--text-primary)", marginTop: "2px" }}>
+                  <div style={{ fontWeight: 600, color: "var(--text-hi)", marginTop: "2px" }}>
                     {header.deptHeadName || "—"}
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize: "0.72rem", color: "var(--text-lo)" }}>Tanggal tanda tangan</div>
-                  <div style={{ fontWeight: 600, color: "var(--text-primary)", marginTop: "2px" }}>
+                  <div style={{ fontWeight: 600, color: "var(--text-hi)", marginTop: "2px" }}>
                     {header.dateStamp || "—"}
                   </div>
                 </div>
@@ -1558,7 +1652,7 @@ export default function TimesheetGenerator() {
               <div className="card-header">
                 <div className="card-title">
                   <div className="card-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <FileTextIcon size={14} />
                   </div>
                   <span>Surat Perintah Lembur (SPL)</span>
                 </div>
@@ -1571,8 +1665,8 @@ export default function TimesheetGenerator() {
                 </button>
               </div>
 
-              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
-                File SPL untuk tanggal <strong>{selectedSPLRow.dayName}, {selectedSPLRow.date}</strong> ({selectedSPLRow.startTime} - {selectedSPLRow.endTime}).
+              <p style={{ fontSize: "0.85rem", color: "var(--text-mid)", marginBottom: "1rem" }}>
+                Rincian SPL untuk tanggal <strong>{selectedSPLRow.dayName}, {selectedSPLRow.date}</strong> ({selectedSPLRow.startTime} - {selectedSPLRow.endTime}).
               </p>
 
               <div className="form-group" style={{ marginBottom: "1.25rem" }}>
@@ -1608,7 +1702,8 @@ export default function TimesheetGenerator() {
                     setSelectedSPLRow(null);
                   }}
                 >
-                  ⬇️ Download SPL Excel
+                  <DownloadIcon size={14} />
+                  <span>Unduh SPL Excel</span>
                 </button>
               </div>
             </div>
@@ -1624,9 +1719,9 @@ export default function TimesheetGenerator() {
               <div className="card-header">
                 <div className="card-title">
                   <div className="card-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <SparklesIcon size={14} />
                   </div>
-                  <span>Isi cepat jam kerja</span>
+                  <span>Isi Cepat Jam Kerja</span>
                 </div>
                 <button
                   type="button"
@@ -1637,7 +1732,7 @@ export default function TimesheetGenerator() {
                 </button>
               </div>
 
-              <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-mid)", marginBottom: "1.25rem" }}>
                 Terapkan jam kerja default ke seluruh hari kerja aktif (Senin - Jumat). Rumus akan otomatis memotong jam istirahat sesuai aturan Adidata (Jumat 1.5h, lainnya 1h).
               </p>
 
@@ -1689,7 +1784,8 @@ export default function TimesheetGenerator() {
                   className="btn btn-primary"
                   onClick={handleExecuteBulkFill}
                 >
-                  ⚡ Terapkan Sekarang
+                  <SparklesIcon size={14} />
+                  <span>Terapkan Sekarang</span>
                 </button>
               </div>
             </div>
