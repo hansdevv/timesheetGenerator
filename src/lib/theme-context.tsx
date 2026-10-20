@@ -17,16 +17,25 @@ const ThemeContext = createContext<ThemeContextValue>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window !== "undefined") {
-      const currentAttr = document.documentElement.getAttribute("data-theme") as Theme | null;
-      if (currentAttr === "light" || currentAttr === "dark") return currentAttr;
-      const saved = localStorage.getItem("ts-theme") as Theme | null;
-      if (saved === "light" || saved === "dark") return saved;
-      return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  const [theme, setTheme] = useState<Theme>("dark");
+
+  useEffect(() => {
+    const currentAttr = document.documentElement.getAttribute("data-theme") as Theme | null;
+    if (currentAttr === "light" || currentAttr === "dark") {
+      setTheme(currentAttr);
+      return;
     }
-    return "dark";
-  });
+    const saved = localStorage.getItem("ts-theme") as Theme | null;
+    if (saved === "light" || saved === "dark") {
+      setTheme(saved);
+      document.documentElement.setAttribute("data-theme", saved);
+      return;
+    }
+    if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+      setTheme("light");
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+  }, []);
 
   // Ensure DOM attribute matches active state
   useEffect(() => {

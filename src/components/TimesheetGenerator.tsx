@@ -5,7 +5,9 @@ import type { TimesheetHeader, TimesheetRow, AttendanceStatus, SPLData } from "@
 import {
   generateMonthRows,
   calcHours,
+  formatTimeWithSeconds,
   summarizeTimesheet,
+  isOvertimeRow,
   MONTH_NAMES_TITLE,
   STATUS_OPTIONS,
   TASK_PRESETS,
@@ -35,6 +37,7 @@ import {
   FileTextIcon,
   UmbrellafillIcon,
   ArchiveIcon,
+  TrashIcon,
 } from "@/components/Icons";
 
 // ===== Initial State =====
@@ -65,26 +68,28 @@ const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_DATE.getFullYear() - 2
 
 export default function TimesheetGenerator() {
   const [activeTab, setActiveTab] = useState<"timesheet" | "spl" | "export">("timesheet");
-  const [header, setHeader] = useState<TimesheetHeader>(() => {
-    if (typeof window !== "undefined") {
-      const draft = loadTimesheetDraft();
-      if (draft?.header) return draft.header;
-    }
-    return DEFAULT_HEADER;
-  });
-
-  const [rows, setRows] = useState<TimesheetRow[]>(() => {
-    if (typeof window !== "undefined") {
-      const draft = loadTimesheetDraft();
-      if (draft?.rows && draft.rows.length > 0) return draft.rows;
-    }
-    return generateMonthRows(DEFAULT_HEADER.month, DEFAULT_HEADER.year, {
+  const [header, setHeader] = useState<TimesheetHeader>(DEFAULT_HEADER);
+  const [rows, setRows] = useState<TimesheetRow[]>(() =>
+    generateMonthRows(DEFAULT_HEADER.month, DEFAULT_HEADER.year, {
       projectName: DEFAULT_HEADER.projectName,
       projectId: DEFAULT_HEADER.projectId,
       aplikasiBerdampak: DEFAULT_HEADER.aplikasiBerdampak,
       aipFitur: DEFAULT_HEADER.aipFitur,
-    });
-  });
+    })
+  );
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load draft on mount (client-only, completely prevents SSR hydration mismatch)
+  useEffect(() => {
+    const draft = loadTimesheetDraft();
+    if (draft?.header) {
+      setHeader(draft.header);
+    }
+    if (draft?.rows && draft.rows.length > 0) {
+      setRows(draft.rows);
+    }
+    setIsLoaded(true);
+  }, []);
 
   const [isExporting, setIsExporting] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "info" | "warning" } | null>(null);
@@ -96,8 +101,8 @@ export default function TimesheetGenerator() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSPLRow, setSelectedSPLRow] = useState<TimesheetRow | null>(null);
   const [showQuickFillModal, setShowQuickFillModal] = useState(false);
-  const [quickFillStart, setQuickFillStart] = useState("08:00");
-  const [quickFillEnd, setQuickFillEnd] = useState("17:00");
+  const [quickFillStart, setQuickFillStart] = useState("08:00:00");
+  const [quickFillEnd, setQuickFillEnd] = useState("17:00:00");
   const [quickFillTask, setQuickFillTask] = useState("");
 
   // Show Toast
@@ -106,15 +111,16 @@ export default function TimesheetGenerator() {
     setTimeout(() => setToastMsg(null), 4500);
   }, []);
 
-  // 2. Auto-save draft on changes (debounced)
+  // 2. Auto-save draft on changes (debounced), only after initial draft is loaded
   useEffect(() => {
+    if (!isLoaded) return;
     if (rows.length > 0) {
       const timeout = setTimeout(() => {
         saveTimesheetDraft(header, rows);
       }, 800);
       return () => clearTimeout(timeout);
     }
-  }, [header, rows]);
+  }, [header, rows, isLoaded]);
 
   // Regenerate rows when Month/Year changes
   const handleRegenerateMonth = useCallback(
@@ -170,8 +176,8 @@ export default function TimesheetGenerator() {
               if (s === "H" && !updated.activity) updated.activity = "Hari Libur Nasional";
             } else if (s === "P") {
               if (!updated.startTime && !updated.endTime) {
-                const defaultStart = r.isWeekend ? "09:00" : "08:00";
-                const defaultEnd = r.isWeekend ? "18:00" : "17:00";
+                const defaultStart = r.isWeekend ? "09:00:00" : "08:00:00";
+                const defaultEnd = r.isWeekend ? "18:00:00" : "17:00:00";
                 updated.startTime = defaultStart;
                 updated.endTime = defaultEnd;
                 const d = new Date(r.date);
@@ -191,22 +197,99 @@ export default function TimesheetGenerator() {
 
   // Quick Action: Enable Overtime for Weekend Row
   const handleAddWeekendOvertime = useCallback((rowId: string) => {
+    let updatedRow: TimesheetRow | null = null;
     setRows((prev) =>
       prev.map((r) => {
         if (r.id !== rowId) return r;
         const d = new Date(r.date);
-        const hours = calcHours("09:00", "18:00", d.getDay());
-        return {
+        const hours = calcHours("09:00:00", "18:00:00", d.getDay());
+        const updated: TimesheetRow = {
           ...r,
           status: "P" as AttendanceStatus,
-          startTime: "09:00",
-          endTime: "18:00",
+          startTime: "09:00:00",
+          endTime: "18:00:00",
           totalHours: hours,
-          activity: r.activity === "Weekend" ? "Support SIT & Perbaikan Defect" : r.activity,
+          isOvertime: true,
+          overtimeStartTime: "09:00:00",
+          overtimeEndTime: "18:00:00",
+          activity: r.activity === "Weekend" || !r.activity ? "Support SIT & Perbaikan Defect" : r.activity,
         };
+        updatedRow = updated;
+        return updated;
       })
     );
     showToast("Hari lembur akhir pekan berhasil ditambahkan. SPL otomatis disiapkan!", "success");
+    if (updatedRow) {
+      setSelectedSPLRow(updatedRow);
+    }
+  }, [showToast]);
+
+  // Quick Action: Enable Overtime for Weekday Row
+  const handleAddWeekdayOvertime = useCallback((rowId: string) => {
+    let updatedRow: TimesheetRow | null = null;
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== rowId) return r;
+        const d = new Date(r.date);
+        const start = r.startTime ? formatTimeWithSeconds(r.startTime) : "08:00:00";
+        // If current endTime is 17:00:00 or less (or empty), extend to 20:00:00
+        const end = (!r.endTime || r.endTime <= "17:00:00") ? "20:00:00" : formatTimeWithSeconds(r.endTime);
+        const hours = calcHours(start, end, d.getDay());
+        const updated: TimesheetRow = {
+          ...r,
+          status: "P" as AttendanceStatus,
+          startTime: start,
+          endTime: end,
+          totalHours: hours,
+          isOvertime: true,
+          overtimeStartTime: r.overtimeStartTime ? formatTimeWithSeconds(r.overtimeStartTime) : "17:00:00",
+          overtimeEndTime: r.overtimeEndTime ? formatTimeWithSeconds(r.overtimeEndTime) : end,
+          activity: (!r.activity || r.activity === "Weekend") ? "Lembur: Support & Penyelesaian Defect" : r.activity,
+        };
+        updatedRow = updated;
+        return updated;
+      })
+    );
+    showToast("Lembur hari kerja berhasil diaktifkan! Atur jam & tugas lembur di dialog SPL.", "success");
+    if (updatedRow) {
+      setSelectedSPLRow(updatedRow);
+    }
+  }, [showToast]);
+
+  // Quick Action: Remove Overtime from a Row
+  const handleRemoveOvertime = useCallback((rowId: string) => {
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== rowId) return r;
+        if (r.isWeekend) {
+          return {
+            ...r,
+            status: "X" as AttendanceStatus,
+            startTime: "",
+            endTime: "",
+            totalHours: 0,
+            activity: "Weekend",
+            isOvertime: false,
+            overtimeStartTime: undefined,
+            overtimeEndTime: undefined,
+          };
+        } else {
+          const d = new Date(r.date);
+          const standardHours = d.getDay() === 5 ? 7.5 : 8.0;
+          return {
+            ...r,
+            startTime: "08:00:00",
+            endTime: "17:00:00",
+            totalHours: standardHours,
+            isOvertime: false,
+            overtimeStartTime: undefined,
+            overtimeEndTime: undefined,
+          };
+        }
+      })
+    );
+    setSelectedSPLRow(null);
+    showToast("Status lembur berhasil dinonaktifkan.", "info");
   }, [showToast]);
 
   // Bulk fill active working days
@@ -247,9 +330,9 @@ export default function TimesheetGenerator() {
   // Statistics Summary
   const summary = useMemo(() => summarizeTimesheet(rows), [rows]);
 
-  // Overtime rows
+  // Overtime rows (both weekdays and weekends)
   const overtimeRows = useMemo(() => {
-    return rows.filter((r) => (r.isWeekend && r.status === "P" && r.totalHours > 0) || r.totalHours > 8.5);
+    return rows.filter(isOvertimeRow);
   }, [rows]);
 
   // Empty activities count on working days
@@ -263,7 +346,7 @@ export default function TimesheetGenerator() {
       // 1. Filter Tab
       if (filterMode === "workdays" && r.isWeekend) return false;
       if (filterMode === "weekends" && !r.isWeekend) return false;
-      if (filterMode === "overtime" && !((r.isWeekend && r.status === "P") || r.totalHours > 8.5)) return false;
+      if (filterMode === "overtime" && !isOvertimeRow(r)) return false;
       if (filterMode === "absence" && !["S", "V", "PM", "H"].includes(r.status)) return false;
 
       // 2. Search Query
@@ -310,6 +393,11 @@ export default function TimesheetGenerator() {
   const handleExportSingleSPL = async (row: TimesheetRow) => {
     setIsExporting(true);
     try {
+      const otStart = row.overtimeStartTime || (row.isWeekend ? (row.startTime || "09:00") : "17:00");
+      const otEnd = row.overtimeEndTime || (row.endTime || "20:00");
+      const formattedStart = otStart.length === 5 ? `${otStart}:00` : otStart;
+      const formattedEnd = otEnd.length === 5 ? `${otEnd}:00` : otEnd;
+
       const splData: SPLData = {
         npp: header.npp,
         name: header.name,
@@ -323,8 +411,8 @@ export default function TimesheetGenerator() {
           {
             no: 1,
             date: row.date,
-            startTime: row.startTime ? `${row.startTime}:00` : "09:00:00",
-            endTime: row.endTime ? `${row.endTime}:00` : "18:00:00",
+            startTime: formattedStart,
+            endTime: formattedEnd,
             tasks: row.activity || "1. Support SIT\n2. Perbaikan Defect",
           },
         ],
@@ -970,6 +1058,7 @@ export default function TimesheetGenerator() {
                     </tr>
                   ) : (
                     filteredRows.map((row, idx) => {
+                      const isOvertime = isOvertimeRow(row);
                       const isWeekendWorking = row.isWeekend && row.status === "P";
                       const isWeekendOff = row.isWeekend && row.status !== "P";
                       const isMissingActivity = row.status === "P" && (!row.activity || row.activity.trim() === "");
@@ -980,7 +1069,7 @@ export default function TimesheetGenerator() {
                         <tr
                           key={row.id}
                           className={
-                            isWeekendWorking
+                            isOvertime
                               ? "row-lembur"
                               : isWeekendOff
                               ? "row-weekend"
@@ -1020,8 +1109,9 @@ export default function TimesheetGenerator() {
                           <td>
                             <input
                               type="time"
+                              step="1"
                               className="table-input-compact"
-                              value={row.startTime}
+                              value={formatTimeWithSeconds(row.startTime)}
                               disabled={row.status !== "P"}
                               onChange={(e) => updateRow(row.id, "startTime", e.target.value)}
                             />
@@ -1031,8 +1121,9 @@ export default function TimesheetGenerator() {
                           <td>
                             <input
                               type="time"
+                              step="1"
                               className="table-input-compact"
-                              value={row.endTime}
+                              value={formatTimeWithSeconds(row.endTime)}
                               disabled={row.status !== "P"}
                               onChange={(e) => updateRow(row.id, "endTime", e.target.value)}
                             />
@@ -1045,7 +1136,7 @@ export default function TimesheetGenerator() {
                                 style={{
                                   fontFamily: "JetBrains Mono, monospace",
                                   fontWeight: 700,
-                                  color: isWeekendWorking ? "var(--accent-amber)" : "var(--accent-cyan)",
+                                  color: isOvertime ? "var(--accent-amber)" : "var(--accent-cyan)",
                                 }}
                                 title={
                                   row.dayName === "Jumat"
@@ -1188,16 +1279,36 @@ export default function TimesheetGenerator() {
                                 <PlusIcon size={11} />
                                 <span>Lembur</span>
                               </button>
-                            ) : isWeekendWorking || row.totalHours > 8.5 ? (
+                            ) : isOvertime ? (
                               <button
                                 type="button"
                                 className="btn btn-warning btn-sm"
                                 onClick={() => setSelectedSPLRow(row)}
                                 style={{ fontSize: "0.74rem", padding: "3px 8px", fontWeight: 700 }}
-                                title="Generate Surat Perintah Lembur untuk hari ini"
+                                title={
+                                  row.isWeekend
+                                    ? "Surat Perintah Lembur (Akhir Pekan)"
+                                    : "Surat Perintah Lembur (Hari Kerja)"
+                                }
                               >
                                 <FileTextIcon size={12} />
                                 <span>SPL</span>
+                              </button>
+                            ) : row.status === "P" ? (
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => handleAddWeekdayOvertime(row.id)}
+                                style={{
+                                  fontSize: "0.72rem",
+                                  padding: "3px 7px",
+                                  color: "var(--text-mid)",
+                                  border: "1px dashed var(--border-mid)",
+                                }}
+                                title="Tambah lembur di hari kerja ini"
+                              >
+                                <PlusIcon size={11} />
+                                <span>Lembur</span>
                               </button>
                             ) : (
                               <span style={{ color: "var(--text-lo)", fontSize: "0.75rem" }}>—</span>
@@ -1277,7 +1388,7 @@ export default function TimesheetGenerator() {
                   <span>Daftar Surat Lembur (SPL)</span>
                 </div>
                 <div className="card-subtitle">
-                  Sistem otomatis mendeteksi hari lembur dari aktivitas akhir pekan atau jam kerja melebihi standar.
+                  Sistem otomatis mendeteksi hari lembur dari aktivitas hari kerja (weekdays) maupun akhir pekan (weekends).
                 </div>
               </div>
               <button
@@ -1306,7 +1417,7 @@ export default function TimesheetGenerator() {
                   Belum Ada Hari Lembur yang Terdeteksi
                 </h3>
                 <p style={{ color: "var(--text-mid)", fontSize: "0.85rem", maxWidth: "450px", margin: "0.4rem auto 1.25rem" }}>
-                  Untuk mencatat lembur, buka <strong>Editor Timesheet</strong> lalu klik tombol <strong>+ Lembur</strong> di hari Sabtu/Minggu atau masukkan jam kerja di atas 8.5 jam.
+                  Untuk mencatat lembur, buka <strong>Editor Timesheet</strong> lalu klik tombol <strong>+ Lembur</strong> di baris hari kerja (Senin–Jumat) atau akhir pekan (Sabtu/Minggu).
                 </p>
                 <button
                   type="button"
@@ -1321,79 +1432,103 @@ export default function TimesheetGenerator() {
                 <div className="alert alert-info">
                   <SparklesIcon size={16} />
                   <span>
-                    Ditemukan <strong>{overtimeRows.length} penugasan lembur</strong>. Unduh formulir SPL resmi Adidata per tanggal tugas di bawah ini.
+                    Ditemukan <strong>{overtimeRows.length} penugasan lembur</strong> (hari kerja &amp; akhir pekan). Unduh formulir SPL resmi Adidata per tanggal tugas di bawah ini.
                   </span>
                 </div>
 
-                {overtimeRows.map((ot, index) => (
-                  <div
-                    key={ot.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "14px 16px",
-                      background: "var(--bg-card-subtle)",
-                      borderRadius: "var(--radius-sm)",
-                      border: "1px solid var(--border)",
-                      flexWrap: "wrap",
-                      gap: "12px",
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 700, color: "var(--text-hi)", fontSize: "0.92rem" }}>
-                          Penugasan #{index + 1}: {ot.dayName}, {ot.date}
-                        </span>
-                        <span
+                {overtimeRows.map((ot, index) => {
+                  const otStart = ot.overtimeStartTime || (ot.isWeekend ? (ot.startTime || "09:00") : "17:00");
+                  const otEnd = ot.overtimeEndTime || (ot.endTime || "20:00");
+
+                  return (
+                    <div
+                      key={ot.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "14px 16px",
+                        background: "var(--bg-card-subtle)",
+                        borderRadius: "var(--radius-sm)",
+                        border: "1px solid var(--border)",
+                        flexWrap: "wrap",
+                        gap: "12px",
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                          <span style={{ fontWeight: 700, color: "var(--text-hi)", fontSize: "0.92rem" }}>
+                            Penugasan #{index + 1}: {ot.dayName}, {ot.date}
+                          </span>
+                          <span
+                            style={{
+                              background: ot.isWeekend ? "var(--amber-dim)" : "var(--accent-dim)",
+                              border: `1px solid ${ot.isWeekend ? "var(--amber-dim-border)" : "var(--accent-dim-border)"}`,
+                              color: ot.isWeekend ? "var(--amber-text)" : "var(--accent)",
+                              padding: "2px 7px",
+                              borderRadius: "var(--radius-xs)",
+                              fontWeight: 700,
+                              fontSize: "0.72rem",
+                            }}
+                          >
+                            {ot.isWeekend ? "Akhir Pekan" : "Hari Kerja"}
+                          </span>
+                          <span
+                            style={{
+                              background: "var(--amber-dim)",
+                              border: "1px solid var(--amber-dim-border)",
+                              color: "var(--amber-text)",
+                              padding: "2px 7px",
+                              borderRadius: "var(--radius-xs)",
+                              fontWeight: 700,
+                              fontSize: "0.75rem",
+                              fontFamily: "var(--font-mono, monospace)",
+                            }}
+                            title="Jam Lembur untuk formulir SPL"
+                          >
+                            SPL: {otStart} - {otEnd}
+                          </span>
+                          {!ot.isWeekend && (
+                            <span style={{ fontSize: "0.75rem", color: "var(--text-lo)" }}>
+                              (Hadir: {ot.startTime} - {ot.endTime})
+                            </span>
+                          )}
+                        </div>
+                        <div
                           style={{
-                            background: "var(--amber-dim)",
-                            border: "1px solid var(--amber-dim-border)",
-                            color: "var(--amber-text)",
-                            padding: "2px 7px",
-                            borderRadius: "var(--radius-xs)",
-                            fontWeight: 700,
-                            fontSize: "0.75rem",
-                            fontFamily: "var(--font-mono, monospace)",
+                            fontSize: "0.82rem",
+                            color: "var(--text-mid)",
+                            marginTop: "4px",
+                            whiteSpace: "pre-line",
+                            lineHeight: 1.45,
                           }}
                         >
-                          {ot.startTime} - {ot.endTime} ({ot.totalHours} Jam)
-                        </span>
+                          {ot.activity || "Belum ada rincian tugas lembur..."}
+                        </div>
                       </div>
-                      <div
-                        style={{
-                          fontSize: "0.82rem",
-                          color: "var(--text-mid)",
-                          marginTop: "4px",
-                          whiteSpace: "pre-line",
-                          lineHeight: 1.45,
-                        }}
-                      >
-                        {ot.activity || "Belum ada rincian tugas lembur..."}
-                      </div>
-                    </div>
 
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => setSelectedSPLRow(ot)}
-                      >
-                        <EditIcon size={12} />
-                        <span>Edit Rincian</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleExportSingleSPL(ot)}
-                        disabled={isExporting}
-                      >
-                        <DownloadIcon size={12} />
-                        <span>Unduh SPL Excel</span>
-                      </button>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setSelectedSPLRow(ot)}
+                        >
+                          <EditIcon size={12} />
+                          <span>Edit Rincian</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleExportSingleSPL(ot)}
+                          disabled={isExporting}
+                        >
+                          <DownloadIcon size={12} />
+                          <span>Unduh SPL Excel</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1644,71 +1779,205 @@ export default function TimesheetGenerator() {
         )}
 
         {/* =========================================================================
-            MODAL: EDIT SPL TASKS
+            MODAL: EDIT SPL TASKS & HOURS
         ========================================================================= */}
-        {selectedSPLRow && (
-          <div className="modal-backdrop animate-fade-in" onClick={() => setSelectedSPLRow(null)}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="card-header">
-                <div className="card-title">
-                  <div className="card-icon">
-                    <FileTextIcon size={14} />
+        {selectedSPLRow && (() => {
+          const otStart = selectedSPLRow.overtimeStartTime || (selectedSPLRow.isWeekend ? (selectedSPLRow.startTime || "09:00") : "17:00");
+          const otEnd = selectedSPLRow.overtimeEndTime || (selectedSPLRow.endTime || "20:00");
+          const otDiff = calcHours(otStart, otEnd);
+
+          return (
+            <div className="modal-backdrop animate-fade-in" onClick={() => setSelectedSPLRow(null)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "560px" }}>
+                <div className="card-header" style={{ marginBottom: "1rem" }}>
+                  <div className="card-title">
+                    <div className="card-icon">
+                      <FileTextIcon size={14} />
+                    </div>
+                    <span>Surat Perintah Lembur (SPL)</span>
                   </div>
-                  <span>Surat Perintah Lembur (SPL)</span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setSelectedSPLRow(null)}
+                  >
+                    ✕
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setSelectedSPLRow(null)}
-                >
-                  ✕
-                </button>
-              </div>
 
-              <p style={{ fontSize: "0.85rem", color: "var(--text-mid)", marginBottom: "1rem" }}>
-                Rincian SPL untuk tanggal <strong>{selectedSPLRow.dayName}, {selectedSPLRow.date}</strong> ({selectedSPLRow.startTime} - {selectedSPLRow.endTime}).
-              </p>
-
-              <div className="form-group" style={{ marginBottom: "1.25rem" }}>
-                <label className="form-label">
-                  Rincian Tugas yang Dikerjakan Saat Lembur
-                  <span className="hint">Mendukung multi-baris / poin</span>
-                </label>
-                <textarea
-                  className="form-textarea"
-                  rows={4}
-                  value={selectedSPLRow.activity}
-                  onChange={(e) => {
-                    updateRow(selectedSPLRow.id, "activity", e.target.value);
-                    setSelectedSPLRow((prev) => (prev ? { ...prev, activity: e.target.value } : null));
-                  }}
-                  placeholder="Contoh:&#10;1. Support SIT & Testing&#10;2. Perbaikan Defect CR60137 - [KRI] Input & Penugasan"
-                />
-              </div>
-
-              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setSelectedSPLRow(null)}
-                >
-                  Tutup
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={async () => {
-                    await handleExportSingleSPL(selectedSPLRow);
-                    setSelectedSPLRow(null);
+                {/* Day status badge & date */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 14px",
+                    background: "var(--bg-card-subtle)",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--border)",
+                    marginBottom: "1.25rem",
                   }}
                 >
-                  <DownloadIcon size={14} />
-                  <span>Unduh SPL Excel</span>
-                </button>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "var(--text-hi)", fontSize: "0.95rem" }}>
+                      {selectedSPLRow.dayName}, {selectedSPLRow.date}
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: "var(--text-mid)", marginTop: "2px" }}>
+                      Jam Hadir Timesheet: <strong>{selectedSPLRow.startTime || "—"}</strong> s/d <strong>{selectedSPLRow.endTime || "—"}</strong> ({selectedSPLRow.totalHours} Jam)
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      background: selectedSPLRow.isWeekend ? "var(--amber-dim)" : "var(--accent-dim)",
+                      border: `1px solid ${selectedSPLRow.isWeekend ? "var(--amber-dim-border)" : "var(--accent-dim-border)"}`,
+                      color: selectedSPLRow.isWeekend ? "var(--amber-text)" : "var(--accent)",
+                      padding: "4px 8px",
+                      borderRadius: "var(--radius-xs)",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {selectedSPLRow.isWeekend ? "Akhir Pekan" : "Hari Kerja"}
+                  </span>
+                </div>
+
+                {/* Overtime Hours Configuration */}
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <label className="form-label" style={{ marginBottom: "6px" }}>
+                    Rentang Waktu Pelaksanaan Lembur (Format SPL)
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", color: "var(--text-mid)", display: "block", marginBottom: "4px" }}>
+                        Mulai Lembur
+                      </span>
+                      <input
+                        type="time"
+                        step="1"
+                        className="form-input"
+                        value={otStart}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          updateRow(selectedSPLRow.id, "overtimeStartTime", val);
+                          setSelectedSPLRow((prev) => (prev ? { ...prev, overtimeStartTime: val } : null));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", color: "var(--text-mid)", display: "block", marginBottom: "4px" }}>
+                        Selesai Lembur
+                      </span>
+                      <input
+                        type="time"
+                        step="1"
+                        className="form-input"
+                        value={otEnd}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          updateRow(selectedSPLRow.id, "overtimeEndTime", val);
+                          // Sync timesheet endTime if overtime end is later
+                          if (val > selectedSPLRow.endTime) {
+                            updateRow(selectedSPLRow.id, "endTime", val);
+                          }
+                          setSelectedSPLRow((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  overtimeEndTime: val,
+                                  endTime: val > prev.endTime ? val : prev.endTime,
+                                }
+                              : null
+                          );
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", color: "var(--text-mid)", display: "block", marginBottom: "4px" }}>
+                        Durasi Lembur
+                      </span>
+                      <div
+                        style={{
+                          height: "38px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "var(--bg-input)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "var(--radius-xs)",
+                          fontWeight: 700,
+                          color: "var(--amber-text)",
+                          fontSize: "0.85rem",
+                          fontFamily: "var(--font-mono, monospace)",
+                        }}
+                      >
+                        {otDiff > 0 ? `${otDiff} Jam` : "—"}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-lo)", marginTop: "6px" }}>
+                    {selectedSPLRow.isWeekend
+                      ? "Lembur akhir pekan dihitung berdasarkan durasi tugas di hari libur."
+                      : "Pada hari kerja, jam lembur biasanya dimulai setelah jam pulang standar kantor (17:00)."}
+                  </div>
+                </div>
+
+                {/* Overtime Task Details */}
+                <div className="form-group" style={{ marginBottom: "1.25rem" }}>
+                  <label className="form-label">
+                    Rincian Tugas yang Dikerjakan Saat Lembur
+                    <span className="hint">Mendukung multi-baris / poin</span>
+                  </label>
+                  <textarea
+                    className="form-textarea"
+                    rows={4}
+                    value={selectedSPLRow.activity}
+                    onChange={(e) => {
+                      updateRow(selectedSPLRow.id, "activity", e.target.value);
+                      setSelectedSPLRow((prev) => (prev ? { ...prev, activity: e.target.value } : null));
+                    }}
+                    placeholder="Contoh:&#10;1. Support SIT & Testing&#10;2. Perbaikan Defect CR60137 - [KRI] Input & Penugasan"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: "flex", gap: "10px", justifyContent: "space-between", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: "var(--accent-rose)", borderColor: "rgba(239, 68, 68, 0.3)" }}
+                    onClick={() => handleRemoveOvertime(selectedSPLRow.id)}
+                    title="Hapus status lembur dan kembalikan ke jam normal"
+                  >
+                    <TrashIcon size={13} />
+                    <span>Batalkan Lembur</span>
+                  </button>
+
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setSelectedSPLRow(null)}
+                    >
+                      Tutup
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={async () => {
+                        await handleExportSingleSPL(selectedSPLRow);
+                        setSelectedSPLRow(null);
+                      }}
+                    >
+                      <DownloadIcon size={14} />
+                      <span>Unduh SPL Excel</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* =========================================================================
             MODAL: QUICK BULK FILL WORKING DAYS
@@ -1741,6 +2010,7 @@ export default function TimesheetGenerator() {
                   <label className="form-label">Jam Mulai</label>
                   <input
                     type="time"
+                    step="1"
                     className="form-input"
                     value={quickFillStart}
                     onChange={(e) => setQuickFillStart(e.target.value)}
@@ -1750,6 +2020,7 @@ export default function TimesheetGenerator() {
                   <label className="form-label">Jam Selesai</label>
                   <input
                     type="time"
+                    step="1"
                     className="form-input"
                     value={quickFillEnd}
                     onChange={(e) => setQuickFillEnd(e.target.value)}

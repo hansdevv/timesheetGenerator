@@ -79,6 +79,7 @@ export default function Navbar() {
           type="button"
           className="theme-toggle"
           onClick={toggle}
+          suppressHydrationWarning
           title={theme === "dark" ? "Beralih ke mode terang (Light mode)" : "Beralih ke mode gelap (Dark mode)"}
           aria-label={theme === "dark" ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
         >

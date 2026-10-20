@@ -18,6 +18,9 @@ export interface TimesheetRow {
   isWeekend: boolean;
   isHoliday: boolean;
   holidayName?: string;
+  isOvertime?: boolean;
+  overtimeStartTime?: string;
+  overtimeEndTime?: string;
 }
 
 export interface TimesheetHeader {
@@ -125,8 +128,8 @@ export function generateMonthRows(
       id: dateStr,
       date: dateStr,
       dayName: DAY_NAMES_ID[dayOfWeek],
-      startTime: isWeekend ? "" : "08:00",
-      endTime: isWeekend ? "" : "17:00",
+      startTime: isWeekend ? "" : "08:00:00",
+      endTime: isWeekend ? "" : "17:00:00",
       totalHours: defaultHours,
       status: isWeekend ? "X" : "P",
       activity: isWeekend ? "Weekend" : "",
@@ -143,15 +146,30 @@ export function generateMonthRows(
 }
 
 /**
+ * Format a time string ensuring it has seconds (HH:MM:SS)
+ */
+export function formatTimeWithSeconds(timeStr?: string): string {
+  if (!timeStr) return "";
+  const trimmed = timeStr.trim();
+  if (!trimmed) return "";
+  const parts = trimmed.split(":");
+  const hh = String(Number(parts[0]) || 0).padStart(2, "0");
+  const mm = String(Number(parts[1]) || 0).padStart(2, "0");
+  const ss = String(Number(parts[2]) || 0).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
+}
+
+/**
  * Calculate total hours from start/end time strings with lunch break deduction
+ * Supports both HH:MM and HH:MM:SS
  */
 export function calcHours(start: string, end: string, dayOfWeek?: number): number {
   if (!start || !end) return 0;
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  const startMin = sh * 60 + (sm || 0);
-  const endMin = eh * 60 + (em || 0);
-  const diffHours = (endMin - startMin) / 60;
+  const [sh, sm, ss] = start.split(":").map(Number);
+  const [eh, em, es] = end.split(":").map(Number);
+  const startSec = (sh || 0) * 3600 + (sm || 0) * 60 + (ss || 0);
+  const endSec = (eh || 0) * 3600 + (em || 0) * 60 + (es || 0);
+  const diffHours = (endSec - startSec) / 3600;
   if (diffHours <= 0) return 0;
   
   // Deduct lunch break (1.5h for Friday, 1.0h for others) if duration >= 5h
@@ -225,9 +243,25 @@ export const TASK_PRESETS = [
   "Investigasi Issue & Performance Tuning",
 ];
 
+/**
+ * Helper to determine if a timesheet row is an overtime (lembur) row.
+ * Covers both:
+ * 1. Explicitly marked overtime (isOvertime = true)
+ * 2. Weekend or holiday working days (isWeekend/isHoliday and status P)
+ * 3. Weekday overtime where totalHours exceeds standard daily working hours
+ *    (Friday standard: 7.5h, other weekdays: 8.0h)
+ */
+export function isOvertimeRow(row: TimesheetRow): boolean {
+  if (row.isOvertime) return true;
+  if ((row.isWeekend || row.isHoliday) && row.status === "P" && row.totalHours > 0) return true;
+  const standardHours = row.dayName === "Jumat" ? 7.5 : 8.0;
+  if (row.status === "P" && row.totalHours > standardHours) return true;
+  return false;
+}
+
 export function formatTimesheetSummaryText(header: TimesheetHeader, rows: TimesheetRow[]): string {
   const summary = summarizeTimesheet(rows);
-  const overtimeCount = rows.filter((r) => (r.isWeekend && r.status === "P" && r.totalHours > 0) || r.totalHours > 8.5).length;
+  const overtimeCount = rows.filter(isOvertimeRow).length;
   const monthName = MONTH_NAMES_TITLE[header.month - 1] || "";
 
   return `📋 *LAPORAN TIMESHEET BULANAN*
@@ -274,7 +308,7 @@ export function loadTimesheetDraft(): { header: TimesheetHeader; rows: Timesheet
 
 export function saveTimesheetToHistory(header: TimesheetHeader, rows: TimesheetRow[]): SavedTimesheetRecord {
   const summary = summarizeTimesheet(rows);
-  const overtimeCount = rows.filter((r) => (r.isWeekend && r.status === "P" && r.totalHours > 0) || r.totalHours > 8.5).length;
+  const overtimeCount = rows.filter(isOvertimeRow).length;
   const record: SavedTimesheetRecord = {
     id: `ts_${header.year}_${header.month}_${Date.now()}`,
     savedAt: new Date().toISOString(),

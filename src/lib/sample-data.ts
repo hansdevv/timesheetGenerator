@@ -1,5 +1,5 @@
 import type { TimesheetHeader, TimesheetRow, AttendanceStatus, SPLData } from "./types";
-import { calcHours, DAY_NAMES_ID } from "./types";
+import { calcHours, formatTimeWithSeconds, DAY_NAMES_ID } from "./types";
 
 export const SAMPLE_HEADER: TimesheetHeader = {
   projectName: "OPERATIONAL RISK MANAGEMENT SYSTEM (ORMS)",
@@ -68,16 +68,19 @@ export function getSampleTimesheetRows(): TimesheetRow[] {
     const dayOfWeek = date.getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-    const totalHours = item.status === "P" && item.start && item.end
-      ? calcHours(item.start, item.end, dayOfWeek)
+    const startTime = formatTimeWithSeconds(item.start);
+    const endTime = formatTimeWithSeconds(item.end);
+
+    const totalHours = item.status === "P" && startTime && endTime
+      ? calcHours(startTime, endTime, dayOfWeek)
       : 0;
 
     return {
       id: dateStr,
       date: dateStr,
       dayName: DAY_NAMES_ID[dayOfWeek],
-      startTime: item.start,
-      endTime: item.end,
+      startTime,
+      endTime,
       totalHours,
       status: item.status,
       activity: item.activity,

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import type { SPLData, SPLEntry } from "@/lib/types";
-import { calcHours, loadTimesheetDraft } from "@/lib/types";
+import { calcHours, loadTimesheetDraft, isOvertimeRow, formatTimeWithSeconds } from "@/lib/types";
 import { exportSPLExcel } from "@/lib/excel-export";
 import { getSampleSPLData } from "@/lib/sample-data";
 import {
@@ -21,51 +21,58 @@ import {
 } from "@/components/Icons";
 
 export default function SPLPage() {
-  const [data, setData] = useState<SPLData>(() => {
-    if (typeof window !== "undefined") {
-      const draft = loadTimesheetDraft();
-      if (draft && draft.header) {
-        const h = draft.header;
-        const overtimeRows = draft.rows.filter(
-          (r) => (r.isWeekend && r.status === "P" && r.totalHours > 0) || r.totalHours > 8.5
-        );
+  const [data, setData] = useState<SPLData>(getSampleSPLData());
 
-        const entries: SPLEntry[] =
-          overtimeRows.length > 0
-            ? overtimeRows.map((r, idx) => ({
+  useEffect(() => {
+    const draft = loadTimesheetDraft();
+    if (draft && draft.header) {
+      const h = draft.header;
+      const overtimeRows = draft.rows.filter(isOvertimeRow);
+
+      const entries: SPLEntry[] =
+        overtimeRows.length > 0
+          ? overtimeRows.map((r, idx) => {
+              const splStart = r.overtimeStartTime
+                ? (r.overtimeStartTime.length === 5 ? `${r.overtimeStartTime}:00` : r.overtimeStartTime)
+                : (r.isWeekend ? (r.startTime ? `${r.startTime}:00` : "09:00:00") : "17:00:00");
+              const splEnd = r.overtimeEndTime
+                ? (r.overtimeEndTime.length === 5 ? `${r.overtimeEndTime}:00` : r.overtimeEndTime)
+                : (r.endTime ? `${r.endTime}:00` : "20:00:00");
+              const diffH = calcHours(splStart, splEnd);
+
+              return {
                 no: idx + 1,
                 date: r.date,
-                startTime: r.startTime ? `${r.startTime}:00` : "09:00:00",
-                endTime: r.endTime ? `${r.endTime}:00` : "18:00:00",
-                totalHours: r.totalHours,
+                startTime: splStart,
+                endTime: splEnd,
+                totalHours: diffH > 0 ? diffH : (r.totalHours || 8),
                 tasks: r.activity || "1. Support SIT & Testing\n2. Perbaikan Defect",
-              }))
-            : [
-                {
-                  no: 1,
-                  date: new Date().toISOString().split("T")[0],
-                  startTime: "09:00:00",
-                  endTime: "18:00:00",
-                  totalHours: 8,
-                  tasks: "1. Support SIT\n2. Perbaikan Defect",
-                },
-              ];
+              };
+            })
+          : [
+              {
+                no: 1,
+                date: new Date().toISOString().split("T")[0],
+                startTime: "09:00:00",
+                endTime: "18:00:00",
+                totalHours: 8,
+                tasks: "1. Support SIT\n2. Perbaikan Defect",
+              },
+            ];
 
-        return {
-          npp: h.npp || "901513",
-          name: h.name || "Mohamad Burhanudin",
-          department: h.department || "EDV / ADV",
-          position: h.employeeTitle || "Developer",
-          teamLeaderName: h.managerName || "Gita Kartika",
-          teamLeaderTitle: h.managerTitle || "Pgs. Team Leader",
-          deptHeadName: h.deptHeadName || "Adhy Perdhana",
-          deptHeadTitle: h.deptHeadTitle || "Department Head",
-          entries,
-        };
-      }
+      setData({
+        npp: h.npp || "901513",
+        name: h.name || "Mohamad Burhanudin",
+        department: h.department || "EDV / ADV",
+        position: h.employeeTitle || "Developer",
+        teamLeaderName: h.managerName || "Gita Kartika",
+        teamLeaderTitle: h.managerTitle || "Pgs. Team Leader",
+        deptHeadName: h.deptHeadName || "Adhy Perdhana",
+        deptHeadTitle: h.deptHeadTitle || "Department Head",
+        entries,
+      });
     }
-    return getSampleSPLData();
-  });
+  }, []);
   const [isExporting, setIsExporting] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "warning" | "info" } | null>(null);
 
@@ -83,7 +90,7 @@ export default function SPLPage() {
         const s = field === "startTime" ? String(value) : current.startTime;
         const e = field === "endTime" ? String(value) : current.endTime;
         const d = new Date(current.date);
-        current.totalHours = calcHours(s.slice(0, 5), e.slice(0, 5), d.getDay());
+        current.totalHours = calcHours(s, e, d.getDay());
       }
       
       nextEntries[index] = current;
@@ -146,20 +153,28 @@ export default function SPLPage() {
       return;
     }
     const h = draft.header;
-    const overtimeRows = draft.rows.filter(
-      (r) => (r.isWeekend && r.status === "P" && r.totalHours > 0) || r.totalHours > 8.5
-    );
+    const overtimeRows = draft.rows.filter(isOvertimeRow);
 
     const entries: SPLEntry[] =
       overtimeRows.length > 0
-        ? overtimeRows.map((r, idx) => ({
-            no: idx + 1,
-            date: r.date,
-            startTime: r.startTime ? `${r.startTime}:00` : "09:00:00",
-            endTime: r.endTime ? `${r.endTime}:00` : "18:00:00",
-            totalHours: r.totalHours,
-            tasks: r.activity || "1. Support SIT\n2. Perbaikan Defect",
-          }))
+        ? overtimeRows.map((r, idx) => {
+            const splStart = r.overtimeStartTime
+              ? (r.overtimeStartTime.length === 5 ? `${r.overtimeStartTime}:00` : r.overtimeStartTime)
+              : (r.isWeekend ? (r.startTime ? `${r.startTime}:00` : "09:00:00") : "17:00:00");
+            const splEnd = r.overtimeEndTime
+              ? (r.overtimeEndTime.length === 5 ? `${r.overtimeEndTime}:00` : r.overtimeEndTime)
+              : (r.endTime ? `${r.endTime}:00` : "20:00:00");
+            const diffH = calcHours(splStart.slice(0, 5), splEnd.slice(0, 5));
+
+            return {
+              no: idx + 1,
+              date: r.date,
+              startTime: splStart,
+              endTime: splEnd,
+              totalHours: diffH > 0 ? diffH : (r.totalHours || 8),
+              tasks: r.activity || "1. Support SIT\n2. Perbaikan Defect",
+            };
+          })
         : [
             {
               no: 1,
@@ -439,18 +454,20 @@ export default function SPLPage() {
                     <label className="form-label">Jam Mulai</label>
                     <input
                       type="time"
+                      step="1"
                       className="form-input"
-                      value={entry.startTime ? entry.startTime.slice(0, 5) : "09:00"}
-                      onChange={(e) => updateEntry(idx, "startTime", `${e.target.value}:00`)}
+                      value={formatTimeWithSeconds(entry.startTime || "09:00:00")}
+                      onChange={(e) => updateEntry(idx, "startTime", e.target.value)}
                     />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Jam Selesai</label>
                     <input
                       type="time"
+                      step="1"
                       className="form-input"
-                      value={entry.endTime ? entry.endTime.slice(0, 5) : "18:00"}
-                      onChange={(e) => updateEntry(idx, "endTime", `${e.target.value}:00`)}
+                      value={formatTimeWithSeconds(entry.endTime || "18:00:00")}
+                      onChange={(e) => updateEntry(idx, "endTime", e.target.value)}
                     />
                   </div>
                 </div>

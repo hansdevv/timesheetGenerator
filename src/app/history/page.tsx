@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import type { SavedTimesheetRecord } from "@/lib/types";
@@ -25,12 +25,11 @@ import {
 
 export default function HistoryPage() {
   const router = useRouter();
-  const [records, setRecords] = useState<SavedTimesheetRecord[]>(() => {
-    if (typeof window !== "undefined") {
-      return loadTimesheetHistory();
-    }
-    return [];
-  });
+  const [records, setRecords] = useState<SavedTimesheetRecord[]>([]);
+
+  useEffect(() => {
+    setRecords(loadTimesheetHistory());
+  }, []);
   const [isExportingId, setIsExportingId] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "info" | "warning" } | null>(null);
 
