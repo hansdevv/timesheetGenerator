@@ -377,15 +377,12 @@ export default function TimesheetGenerator() {
 
       {/* Hero / Page Header */}
       <div className="page-header">
-        <div className="page-badge">
-          <span>📋</span>
-          <span>Standar Template Resmi Adidata</span>
-        </div>
+        <div className="page-badge">Template Resmi Adidata</div>
         <h1 className="page-title">
-          Timesheet & <span className="page-title-gradient">Surat Lembur</span>
+          Timesheet &amp; <em>Surat Lembur</em>
         </h1>
         <p className="page-subtitle">
-          Input aktivitas harian, hitung otomatis jam kerja & potongan istirahat (Jumat 1.5h, Reguler 1h), dan download Excel resmi dengan 1-klik.
+          Input aktivitas harian, jam kerja dihitung otomatis termasuk potongan istirahat (Jumat 1.5 jam, lainnya 1 jam), export ke Excel resmi sekali klik.
         </p>
       </div>
 
@@ -398,7 +395,7 @@ export default function TimesheetGenerator() {
             onClick={() => setActiveTab("timesheet")}
           >
             <span className="stepper-badge">1</span>
-            <span>📋 Editor Timesheet Harian</span>
+            <span>Editor Timesheet</span>
           </button>
           <span className="stepper-separator">›</span>
           <button
@@ -407,7 +404,7 @@ export default function TimesheetGenerator() {
             onClick={() => setActiveTab("spl")}
           >
             <span className="stepper-badge">{overtimeRows.length > 0 ? "⚡" : "2"}</span>
-            <span>🌙 Surat Lembur (SPL)</span>
+            <span>Surat Lembur (SPL)</span>
             {overtimeRows.length > 0 && (
               <span
                 style={{
@@ -430,7 +427,7 @@ export default function TimesheetGenerator() {
             onClick={() => setActiveTab("export")}
           >
             <span className="stepper-badge">3</span>
-            <span>🚀 Export & Unduh</span>
+            <span>Export & Unduh</span>
           </button>
         </div>
 
@@ -887,8 +884,8 @@ export default function TimesheetGenerator() {
                 overflowX: "auto",
               }}
             >
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                💡 TEMPLATE TUGAS CEPAT:
+              <span style={{ fontSize: "0.73rem", fontWeight: 600, color: "var(--text-lo)", whiteSpace: "nowrap" }}>
+                Isi cepat aktivitas kosong:
               </span>
               {TASK_PRESETS.slice(0, 4).map((task) => (
                 <button
@@ -1192,14 +1189,14 @@ export default function TimesheetGenerator() {
                   className="btn btn-secondary btn-sm"
                   onClick={handleCopySummary}
                 >
-                  📋 Salin Teks Ringkasan (WA/Slack)
+                  Salin ringkasan (WA/Slack)
                 </button>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
                   onClick={handleManualSaveArchive}
                 >
-                  💾 Simpan ke Riwayat
+                  Simpan ke riwayat
                 </button>
               </div>
 
@@ -1210,7 +1207,7 @@ export default function TimesheetGenerator() {
                     className="btn btn-warning"
                     onClick={() => setActiveTab("spl")}
                   >
-                    🌙 Review {overtimeRows.length} SPL →
+                    Review {overtimeRows.length} SPL →
                   </button>
                 )}
                 <button
@@ -1218,7 +1215,7 @@ export default function TimesheetGenerator() {
                   className="btn btn-primary"
                   onClick={() => setActiveTab("export")}
                 >
-                  Lanjut ke Download & Cetak →
+                  Ke Download & Cetak →
                 </button>
               </div>
             </div>
@@ -1233,8 +1230,10 @@ export default function TimesheetGenerator() {
             <div className="card-header">
               <div>
                 <div className="card-title">
-                  <div className="card-icon">🌙</div>
-                  <span>Daftar Surat Perintah Lembur (SPL)</span>
+                  <div className="card-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  </div>
+                  <span>Daftar Surat Lembur (SPL)</span>
                 </div>
                 <div className="card-subtitle">
                   Sistem otomatis mendeteksi hari lembur dari aktivitas akhir pekan atau jam kerja melebihi standar.
@@ -1362,7 +1361,9 @@ export default function TimesheetGenerator() {
             <div className="card-header">
               <div>
                 <div className="card-title">
-                  <div className="card-icon">🚀</div>
+                  <div className="card-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </div>
                   <span>Export & Unduh Dokumen</span>
                 </div>
                 <div className="card-subtitle">
@@ -1420,13 +1421,13 @@ export default function TimesheetGenerator() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ fontSize: "28px" }}>📊</span>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--green)", flexShrink: 0 }}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--text-primary)" }}>
-                      Timesheet Resmi (.xlsx)
+                      Timesheet Excel (.xlsx)
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                      Menggunakan master template Adidata dengan rumus jam kerja otomatis
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-mid)" }}>
+                      Master template Adidata, rumus jam kerja sudah terpasang
                     </div>
                   </div>
                 </div>
@@ -1437,7 +1438,7 @@ export default function TimesheetGenerator() {
                   disabled={isExporting}
                   style={{ width: "100%", marginTop: "auto" }}
                 >
-                  {isExporting ? "⏳ Memproses Template..." : "⬇️ Download Excel (.xlsx)"}
+                  {isExporting ? "Memproses..." : "Unduh Excel (.xlsx)"}
                 </button>
               </div>
 
@@ -1453,13 +1454,13 @@ export default function TimesheetGenerator() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ fontSize: "28px" }}>🖨️</span>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-bright)", flexShrink: 0 }}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--text-primary)" }}>
-                      Cetak / PDF Timesheet
+                      Cetak / PDF
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                      Format siap cetak landscape A4 dengan kolom tanda tangan
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-mid)" }}>
+                      Format cetak landscape A4, lengkap dengan kolom tanda tangan
                     </div>
                   </div>
                 </div>
@@ -1469,7 +1470,7 @@ export default function TimesheetGenerator() {
                   onClick={handleExportPDF}
                   style={{ width: "100%", marginTop: "auto" }}
                 >
-                  🖨️ Cetak / Simpan PDF
+                  Cetak / Simpan PDF
                 </button>
               </div>
 
@@ -1485,13 +1486,13 @@ export default function TimesheetGenerator() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ fontSize: "28px" }}>💬</span>
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-mid)", flexShrink: 0 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: "1.05rem", color: "var(--text-primary)" }}>
-                      Kirim Laporan WA / Slack
+                      Salin ringkasan teks
                     </div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                      Format teks rapi siap kirim ke Team Leader atau PM
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-mid)" }}>
+                      Format siap kirim ke Team Leader atau PM via WA/Slack
                     </div>
                   </div>
                 </div>
@@ -1501,7 +1502,7 @@ export default function TimesheetGenerator() {
                   onClick={handleCopySummary}
                   style={{ width: "100%", marginTop: "auto" }}
                 >
-                  📋 Salin Teks Ringkasan
+                  Salin teks ringkasan
                 </button>
               </div>
             </div>
@@ -1515,30 +1516,30 @@ export default function TimesheetGenerator() {
                 padding: "1.25rem",
               }}
             >
-              <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-muted)", marginBottom: "1rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                Metadata Tanda Tangan & Otorisasi
+              <div style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-mid)", marginBottom: "1rem" }}>
+                Tanda tangan & otorisasi
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>PEMERIKSA 1 (OFFICER)</div>
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-lo)" }}>Pemeriksa 1 — Officer</div>
                   <div style={{ fontWeight: 600, color: "var(--text-primary)", marginTop: "2px" }}>
                     {header.officerName || "—"}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>PEMERIKSA 2 (TEAM LEADER)</div>
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-lo)" }}>Pemeriksa 2 — Team Leader</div>
                   <div style={{ fontWeight: 600, color: "var(--text-primary)", marginTop: "2px" }}>
                     {header.managerName || "—"}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>MENYETUJUI (DEPT HEAD)</div>
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-lo)" }}>Menyetujui — Dept Head</div>
                   <div style={{ fontWeight: 600, color: "var(--text-primary)", marginTop: "2px" }}>
                     {header.deptHeadName || "—"}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>TANGGAL TANDA TANGAN</div>
+                  <div style={{ fontSize: "0.72rem", color: "var(--text-lo)" }}>Tanggal tanda tangan</div>
                   <div style={{ fontWeight: 600, color: "var(--text-primary)", marginTop: "2px" }}>
                     {header.dateStamp || "—"}
                   </div>
@@ -1556,7 +1557,9 @@ export default function TimesheetGenerator() {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="card-header">
                 <div className="card-title">
-                  <div className="card-icon">🌙</div>
+                  <div className="card-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  </div>
                   <span>Surat Perintah Lembur (SPL)</span>
                 </div>
                 <button
@@ -1620,8 +1623,10 @@ export default function TimesheetGenerator() {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="card-header">
                 <div className="card-title">
-                  <div className="card-icon">⚡</div>
-                  <span>Isi Cepat Jam Kerja</span>
+                  <div className="card-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  </div>
+                  <span>Isi cepat jam kerja</span>
                 </div>
                 <button
                   type="button"

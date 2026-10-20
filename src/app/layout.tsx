@@ -15,8 +15,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Timesheet & Surat Lembur Generator | Adidata",
-  description: "Generate timesheet dan surat perintah lembur (SPL) resmi Adidata secara otomatis dengan export Excel & PDF",
+  title: "Timesheet & Surat Lembur | Adidata",
+  description: "Generate timesheet dan surat perintah lembur (SPL) resmi Adidata. Export ke Excel & PDF, auto-save, dan template standar siap pakai.",
 };
 
 export default function RootLayout({
@@ -26,7 +26,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id" className={`h-full ${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="app-layout">{children}</body>
+      <body className="app-layout" style={{ fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)" }}>
+        {children}
+      </body>
     </html>
   );
 }
