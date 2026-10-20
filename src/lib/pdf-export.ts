@@ -1,276 +1,360 @@
 "use client";
 
 import type { TimesheetData } from "./types";
-import { MONTH_NAMES_EN } from "./types";
+import { MONTH_NAMES_TITLE } from "./types";
 
 /**
- * Export timesheet as PDF via browser print dialog.
- * Renders a full HTML document with a clean printable layout.
+ * Format a time fraction (Excel-style 0..1) to HH:MM:SS string.
+ * Used to mirror how Excel displays hh:mm:ss cell values.
+ */
+function fracToHMS(frac: number): string {
+  const totalSec = Math.round(frac * 86400);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function parseTimeToFrac(timeStr: string): number | null {
+  if (!timeStr) return null;
+  const parts = timeStr.trim().split(":").map(Number);
+  if (isNaN(parts[0])) return null;
+  const h = parts[0] || 0;
+  const m = parts[1] || 0;
+  const s = parts[2] || 0;
+  return (h * 3600 + m * 60 + s) / 86400;
+}
+
+/**
+ * Export Timesheet as PDF via browser print dialog.
+ * Layout mirrors the official Adidata Excel template exactly:
+ * – Same column order: No | Date | Start | End | Total | P | S | BT | PM | V | X | Activity | Project Name | Project ID | Aplikasi | AIP Fitur
+ * – Same header info block order: NAME OF PROJECT / DEPARTMENT / NAME / NPP / PERIODE
+ * – Same footer: TTD Pegawai | Di Periksa Oleh | (Di Periksa Oleh cont.) | Disetujui Oleh
+ * – Weekend = gray fill, Holiday = gray fill, Present = white, others = white
+ * – Status value shown in its dedicated column (P→col F, S→col G, BT→col H, PM→col I, V→col J, X→col K)
  */
 export function exportTimesheetPDF(data: TimesheetData): void {
   const { header, rows } = data;
-  const periodeLabel = `${MONTH_NAMES_EN[header.month - 1]} ${header.year}`;
+  const monthName = MONTH_NAMES_TITLE[header.month - 1] || "";
+  const periodeLabel = `${monthName} ${header.year}`;
 
-  const statusColors: Record<string, string> = {
-    P: "#10b981",
-    S: "#ef4444",
-    V: "#06b6d4",
-    BT: "#f59e0b",
-    PM: "#a855f7",
-    X: "#64748b",
-    H: "#ec4899",
-  };
+  // Build summary counts (mirrors Excel row 41)
+  let countP = 0, countS = 0, countBT = 0, countPM = 0, countV = 0, countX = 0;
 
-  const statusBg: Record<string, string> = {
-    P: "#d1fae5",
-    S: "#fee2e2",
-    V: "#cffafe",
-    BT: "#fef3c7",
-    PM: "#ede9fe",
-    X: "#f1f5f9",
-    H: "#fce7f3",
-  };
+  const rowsHtml = rows.map((row, idx) => {
+    const dateObj = new Date(`${row.date}T00:00:00Z`);
+    const dayOfWeek = dateObj.getUTCDay(); // 0=Sun,5=Fri,6=Sat
+    const dateFormatted = dateObj.toLocaleDateString("id-ID", {
+      timeZone: "UTC",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).replace(/ /g, "-"); // "1-Sep-2026"
 
-  const rowsHtml = rows
-    .map((row, idx) => {
-      const isWeekend = row.isWeekend;
-      const isHoliday = row.isHoliday || row.status === "H";
-      const rowBg = isHoliday ? "#f5f3ff" : isWeekend ? "#f8fafc" : "#ffffff";
-      const textColor = isWeekend ? "#94a3b8" : "#1e293b";
-      const d = new Date(row.date);
-      const dayNum = d.getDate();
+    const isWeekend = row.isWeekend;
+    const isHoliday = row.isHoliday || row.status === "H";
+    const isPresent = row.status === "P";
 
-      return `<tr style="background:${rowBg}; color:${textColor};">
-        <td style="text-align:center; color:#94a3b8; font-size:9pt;">${idx + 1}</td>
-        <td style="text-align:center; font-weight:600; font-family:monospace;">${String(dayNum).padStart(2, "0")}</td>
-        <td style="color:${isWeekend ? "#94a3b8" : "#475569"};">${row.dayName}</td>
-        <td style="text-align:center; font-family:monospace;">${row.startTime || "-"}</td>
-        <td style="text-align:center; font-family:monospace;">${row.endTime || "-"}</td>
-        <td style="text-align:center; font-weight:700; font-family:monospace;">${row.totalHours > 0 ? row.totalHours : "-"}</td>
-        <td style="text-align:center;">
-          <span style="background:${statusBg[row.status] || "#f1f5f9"}; color:${statusColors[row.status] || "#64748b"}; padding:2px 8px; border-radius:100px; font-size:8pt; font-weight:700; white-space:nowrap;">
-            ${row.status}
-          </span>
-        </td>
-        <td style="font-size:8.5pt; color:${isWeekend ? "#94a3b8" : "#334155"};">${row.activity || (isWeekend ? "Weekend" : "")}</td>
-        <td style="font-size:8.5pt; color:#475569;">${row.projectName || "-"}</td>
-        <td style="font-size:8.5pt; color:#475569; font-family:monospace;">${row.projectId || "-"}</td>
-      </tr>`;
-    })
-    .join("\n");
+    const isWeekendDayOff = isWeekend && !isPresent;
+    const isHolidayDayOff = isHoliday && !isPresent;
+    const isNonWorking = isWeekendDayOff || isHolidayDayOff;
 
-  const totalHours = rows.reduce((s, r) => s + (r.totalHours || 0), 0);
-  const presentDays = rows.filter((r) => r.status === "P").length;
+    // Row background: gray for non-working, white for working
+    const GRAY = "#bfbfbf";
+    const WHITE = "#ffffff";
+    const rowBg = isNonWorking ? GRAY : WHITE;
+    const cellStyle = (extra = "") =>
+      `background:${rowBg}; padding:3px 5px; border:1px solid #000; font-size:7.5pt; vertical-align:middle;${extra}`;
+
+    // Cell values
+    let startHMS = "";
+    let endHMS = "";
+    let totalHMS = "";
+    let colP = "", colS = "", colBT = "", colPM = "", colV = "", colX = "";
+    let activity = "";
+
+    if (isWeekendDayOff) {
+      activity = "Weekend";
+    } else if (isHolidayDayOff) {
+      activity = row.activity || row.holidayName || "Hari Libur Nasional";
+    } else if (isPresent) {
+      countP++;
+      const fracStart = parseTimeToFrac(row.startTime);
+      const fracEnd = parseTimeToFrac(row.endTime);
+      const breakFrac = dayOfWeek === 5 ? 1.5 / 24 : 1.0 / 24;
+      const netFrac = fracStart != null && fracEnd != null ? Math.max(0, fracEnd - fracStart - breakFrac) : 0;
+      startHMS = fracStart != null ? fracToHMS(fracStart) : "";
+      endHMS = fracEnd != null ? fracToHMS(fracEnd) : "";
+      totalHMS = fracToHMS(netFrac);
+      colP = "P";
+      activity = row.activity || "";
+    } else {
+      // S / BT / PM / V / X
+      if (row.status === "S") { countS++; colS = "S"; }
+      else if (row.status === "BT") { countBT++; colBT = "BT"; }
+      else if (row.status === "PM") { countPM++; colPM = "PM"; }
+      else if (row.status === "V") { countV++; colV = "V"; }
+      else { countX++; colX = "x"; }
+      activity = row.activity || (
+        row.status === "S" ? "Sakit" :
+        row.status === "V" ? "Cuti / Vacation" :
+        row.status === "BT" ? "Business Trip" :
+        row.status === "PM" ? "Permit / Izin" : ""
+      );
+    }
+
+    const centerBold = `text-align:center; font-weight:700;`;
+    const center = `text-align:center;`;
+    const mono = `font-family:Calibri,Arial,sans-serif;`;
+
+    return `<tr>
+      <td style="${cellStyle(center)}">${idx + 1}</td>
+      <td style="${cellStyle(center + mono)}">${isNonWorking ? dateFormatted : dateFormatted}</td>
+      <td style="${cellStyle(center + mono + (isPresent ? "font-weight:700;" : ""))}">${startHMS}</td>
+      <td style="${cellStyle(center + mono + (isPresent ? "font-weight:700;" : ""))}">${endHMS}</td>
+      <td style="${cellStyle(center + mono + (isPresent ? "font-weight:700;" : ""))}">${totalHMS}</td>
+      <td style="${cellStyle(centerBold)}">${colP}</td>
+      <td style="${cellStyle(centerBold)}">${colS}</td>
+      <td style="${cellStyle(centerBold)}">${colBT}</td>
+      <td style="${cellStyle(centerBold)}">${colPM}</td>
+      <td style="${cellStyle(centerBold)}">${colV}</td>
+      <td style="${cellStyle(centerBold)}">${colX}</td>
+      <td style="${cellStyle("font-size:7pt;")} background:${rowBg};" colspan="3">${activity}</td>
+      <td style="${cellStyle("font-size:7pt;")}">${isNonWorking ? "" : (row.projectName || header.projectName || "")}</td>
+      <td style="${cellStyle(center + "font-size:7pt;")}">${isNonWorking ? "" : (row.projectId || header.projectId || "")}</td>
+      <td style="${cellStyle(center + "font-size:7pt;")}">${isNonWorking ? "" : (row.aplikasiBerdampak || header.aplikasiBerdampak || "")}</td>
+      <td style="${cellStyle("font-size:7pt;")}">${isNonWorking ? "" : (row.aipFitur || header.aipFitur || "")}</td>
+    </tr>`;
+  }).join("\n");
+
+  // Summary row (mirrors row 41 in Excel)
+  const summaryRow = `<tr style="background:#f0f0f0;">
+    <td colspan="5" style="padding:4px 6px; border:1px solid #000; font-size:7.5pt; text-align:right; font-weight:700;">TOTAL</td>
+    <td style="padding:4px 6px; border:1px solid #000; font-size:7.5pt; text-align:center; font-weight:700;">${countP}</td>
+    <td style="padding:4px 6px; border:1px solid #000; font-size:7.5pt; text-align:center; font-weight:700;">${countS}</td>
+    <td style="padding:4px 6px; border:1px solid #000; font-size:7.5pt; text-align:center; font-weight:700;">${countBT}</td>
+    <td style="padding:4px 6px; border:1px solid #000; font-size:7.5pt; text-align:center; font-weight:700;">${countPM}</td>
+    <td style="padding:4px 6px; border:1px solid #000; font-size:7.5pt; text-align:center; font-weight:700;">${countV}</td>
+    <td style="padding:4px 6px; border:1px solid #000; font-size:7.5pt; text-align:center; font-weight:700;">${countX}</td>
+    <td colspan="7" style="padding:4px 6px; border:1px solid #000;"></td>
+  </tr>`;
+
+  // Date stamp (mirrors row 50 in Excel: "DATE : 01 Oktober 2026")
+  const nextMonth = header.month === 12 ? 1 : header.month + 1;
+  const nextYear = header.month === 12 ? header.year + 1 : header.year;
+  const dateStamp = header.dateStamp || `01 ${MONTH_NAMES_TITLE[nextMonth - 1]} ${nextYear}`;
+  const dateStampText = `DATE : ${dateStamp}`;
+
+  // Signature names
+  const empName = header.name || "_______________";
+  const officerName = header.officerName || "Valentino Tarigan";
+  const officerTitle = header.officerTitle || "Officer";
+  const managerName = header.managerName || "Gita Kartika";
+  const managerTitle = header.managerTitle || "Pgs. Team Leader";
+  const deptHeadName = header.deptHeadName || "Adhy Perdhana";
+  const deptHeadTitle = header.deptHeadTitle || "Department Head";
+  const employeeTitle = header.employeeTitle || "Pegawai";
 
   const html = `<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <title>Timesheet - ${header.name} - ${periodeLabel}</title>
+  <title>Time Sheet ${periodeLabel} - ${header.name}</title>
   <style>
     @page {
       size: A4 landscape;
-      margin: 12mm 15mm;
+      margin: 10mm 10mm 10mm 10mm;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Calibri, Arial, Helvetica, sans-serif;
       font-size: 9pt;
-      color: #1e293b;
+      color: #000;
       background: #fff;
     }
-    .header-wrapper {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      gap: 16px;
-    }
-    .title-block h1 {
-      font-size: 20pt;
-      font-weight: 800;
-      color: #4f46e5;
-      letter-spacing: -0.5px;
-      margin-bottom: 4px;
-    }
-    .title-block .subtitle {
-      font-size: 9pt;
-      color: #64748b;
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px 24px;
-      font-size: 9pt;
-    }
-    .info-row { display: flex; gap: 6px; }
-    .info-label { font-weight: 600; color: #64748b; min-width: 120px; }
-    .info-value { color: #1e293b; font-weight: 500; }
-    .legend {
+
+    /* ── Title ─────────────────────────────────────── */
+    .doc-title {
+      text-align: center;
+      font-size: 14pt;
+      font-weight: 700;
+      letter-spacing: 1px;
       margin-bottom: 8px;
-      font-size: 7.5pt;
-      color: #64748b;
-      padding: 5px 10px;
-      background: #f8fafc;
-      border-radius: 6px;
-      border: 1px solid #e2e8f0;
+      text-transform: uppercase;
     }
-    table {
+
+    /* ── Header info block (mirrors D2:D6) ─────────── */
+    .header-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 12px;
+      margin-bottom: 6px;
+      font-size: 8.5pt;
     }
-    thead th {
-      background: #4f46e5;
-      color: #fff;
-      padding: 7px 8px;
-      font-size: 7.5pt;
+    .header-table td {
+      padding: 1px 4px;
+    }
+    .header-label {
+      width: 160px;
+      font-weight: 400;
+      color: #000;
+    }
+    .header-value {
+      font-weight: 400;
+      color: #000;
+    }
+
+    /* ── Data table ─────────────────────────────────── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 6px;
+      table-layout: fixed;
+    }
+    .data-table thead th {
+      background: #bfbfbf;
+      border: 1px solid #000;
+      padding: 3px 4px;
+      font-size: 7pt;
       font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      border: 1px solid #4338ca;
       text-align: center;
+      vertical-align: middle;
     }
-    tbody td {
-      padding: 5px 8px;
-      border-bottom: 1px solid #f1f5f9;
-      border-right: 1px solid #f1f5f9;
-    }
-    tbody tr:last-child td { border-bottom: 2px solid #4f46e5; }
-    .total-row td {
-      background: #4f46e5;
-      color: #fff;
-      font-weight: 700;
-      padding: 7px 8px;
-      border: none;
-    }
+
+    /* ── Column widths (mirrors Excel column widths) ── */
+    .col-no   { width: 22px; }
+    .col-date { width: 62px; }
+    .col-time { width: 46px; }
+    .col-stat { width: 20px; }
+    .col-act  { width: auto; } /* flex-fill across 3 merged */
+    .col-proj { width: 90px; }
+    .col-pid  { width: 52px; }
+    .col-app  { width: 52px; }
+    .col-aip  { width: 80px; }
+
+    /* ── Signatures (mirrors rows 43-50) ───────────── */
     .sig-section {
-      margin-top: 16px;
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 24px;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 6px;
+      margin-top: 10px;
     }
     .sig-box {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 12px;
+      border: 1px solid #ccc;
+      padding: 6px 8px;
     }
-    .sig-label {
+    .sig-header {
       font-size: 8pt;
-      font-weight: 700;
-      color: #64748b;
-      margin-bottom: 40px;
+      font-weight: 400;
+      margin-bottom: 36px;
     }
     .sig-name {
-      font-size: 9pt;
+      font-size: 8.5pt;
       font-weight: 700;
-      color: #1e293b;
-      border-top: 1px solid #e2e8f0;
-      padding-top: 6px;
       text-align: center;
+      border-top: 1px solid #000;
+      padding-top: 4px;
     }
     .sig-title {
       font-size: 8pt;
-      color: #64748b;
       text-align: center;
     }
-    .date-stamp {
-      font-size: 8pt;
-      color: #94a3b8;
-      text-align: right;
-      margin-top: 8px;
+    .sig-date {
+      font-size: 7.5pt;
+      color: #555;
+      margin-top: 4px;
     }
-    .summary-bar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-    }
-    .sum-item {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 5px 12px;
-      font-size: 8.5pt;
-    }
-    .sum-item strong { color: #4f46e5; }
   </style>
 </head>
 <body>
-  <div class="header-wrapper">
-    <div class="title-block">
-      <h1>TIME SHEET</h1>
-      <div class="subtitle">Periode: ${periodeLabel}</div>
-    </div>
-    <div class="info-grid">
-      <div class="info-row"><span class="info-label">NAME of PROJECT</span><span class="info-value">: ${header.projectName}</span></div>
-      <div class="info-row"><span class="info-label">NPP</span><span class="info-value">: ${header.npp}</span></div>
-      <div class="info-row"><span class="info-label">DEPARTMENT / DIVISION</span><span class="info-value">: ${header.department}</span></div>
-      <div class="info-row"><span class="info-label">PERIODE</span><span class="info-value">: ${periodeLabel}</span></div>
-      <div class="info-row"><span class="info-label">NAME</span><span class="info-value">: ${header.name}</span></div>
-    </div>
-  </div>
+  <div class="doc-title">TIME SHEET</div>
 
-  <div class="summary-bar">
-    <div class="sum-item">Present: <strong>${presentDays}</strong> days</div>
-    <div class="sum-item">Total Hours: <strong>${totalHours}</strong> hrs</div>
-    <div class="sum-item">Sick: <strong>${rows.filter((r) => r.status === "S").length}</strong></div>
-    <div class="sum-item">Vacation: <strong>${rows.filter((r) => r.status === "V").length}</strong></div>
-    <div class="sum-item">Business Trip: <strong>${rows.filter((r) => r.status === "BT").length}</strong></div>
-    <div class="sum-item">Permit: <strong>${rows.filter((r) => r.status === "PM").length}</strong></div>
-  </div>
+  <!-- Header Info Block (mirrors D2:D6 in Excel) -->
+  <table class="header-table">
+    <tr>
+      <td class="header-label">NAME OF PROJECT</td>
+      <td class="header-value">:  ${header.projectName || ""}</td>
+      <td width="20"></td>
+      <td class="header-label">NPP</td>
+      <td class="header-value">:  ${header.npp || ""}</td>
+    </tr>
+    <tr>
+      <td class="header-label">DEPARTMENT / DIVISION</td>
+      <td class="header-value">:  ${header.department || ""}</td>
+      <td></td>
+      <td class="header-label">PERIODE</td>
+      <td class="header-value">:  ${periodeLabel}</td>
+    </tr>
+    <tr>
+      <td class="header-label">NAME</td>
+      <td class="header-value">:  ${header.name || ""}</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </table>
 
-  <div class="legend">
-    P = Present &nbsp;|&nbsp; S = Sick &nbsp;|&nbsp; V = Vacation &nbsp;|&nbsp; BT = Business Trip &nbsp;|&nbsp; PM = Permit &nbsp;|&nbsp; X = Not Working &nbsp;|&nbsp; H = Holiday
-  </div>
-
-  <table>
+  <!-- Data Table (mirrors cols B–R, rows 9–41) -->
+  <table class="data-table">
     <thead>
       <tr>
-        <th style="width:28px;">No</th>
-        <th style="width:36px;">Date</th>
-        <th style="width:60px;">Day</th>
-        <th style="width:50px;">Start</th>
-        <th style="width:50px;">End</th>
-        <th style="width:55px;">Total Hr</th>
-        <th style="width:55px;">Status</th>
-        <th>Activity / Remark</th>
-        <th style="width:120px;">Project Name</th>
-        <th style="width:80px;">Project ID</th>
+        <th class="col-no" rowspan="2">No</th>
+        <th class="col-date" rowspan="2">Date</th>
+        <th class="col-time" rowspan="2">Start Time</th>
+        <th class="col-time" rowspan="2">End Time</th>
+        <th class="col-time" rowspan="2">Total Hours</th>
+        <th colspan="6">Keterangan</th>
+        <th colspan="3" rowspan="2">Activity / Remark</th>
+        <th class="col-proj" rowspan="2">Project Name</th>
+        <th class="col-pid" rowspan="2">Project ID</th>
+        <th class="col-app" rowspan="2">Aplikasi Berdampak</th>
+        <th class="col-aip" rowspan="2">AIP / Fitur</th>
+      </tr>
+      <tr>
+        <th class="col-stat">P</th>
+        <th class="col-stat">S</th>
+        <th class="col-stat">BT</th>
+        <th class="col-stat">PM</th>
+        <th class="col-stat">V</th>
+        <th class="col-stat">X</th>
       </tr>
     </thead>
     <tbody>
       ${rowsHtml}
+      ${summaryRow}
     </tbody>
-    <tfoot>
-      <tr class="total-row">
-        <td colspan="5" style="text-align:right;">TOTAL WORKING HOURS</td>
-        <td style="text-align:center;">${totalHours} hrs</td>
-        <td colspan="4" style="text-align:center;">Present: ${presentDays} days</td>
-      </tr>
-    </tfoot>
   </table>
 
+  <!-- Signature Section (mirrors rows 43-50 in Excel) -->
   <div class="sig-section">
+    <!-- Col B: TTD PEGAWAI -->
     <div class="sig-box">
-      <div class="sig-label">TTD PEGAWAI,</div>
-      <div class="sig-name">( ${header.name || "___________________"} )</div>
-      <div class="sig-title">${header.employeeTitle || "EMPLOYEE"}</div>
+      <div class="sig-header">TTD PEGAWAI,</div>
+      <div class="sig-name">( ${empName} )</div>
+      <div class="sig-title">${employeeTitle}</div>
+      <div class="sig-date">${dateStampText}</div>
     </div>
+    <!-- Col E: DI PERIKSA OLEH (Officer) -->
     <div class="sig-box">
-      <div class="sig-label">DI PERIKSA OLEH,</div>
-      <div class="sig-name">( ${header.managerName || "___________________"} )</div>
-      <div class="sig-title">MANAGER</div>
+      <div class="sig-header">DI PERIKSA OLEH,</div>
+      <div class="sig-name">( ${officerName} )</div>
+      <div class="sig-title">${officerTitle}</div>
+      <div class="sig-date">${dateStampText}</div>
     </div>
+    <!-- Col I: DI PERIKSA OLEH (Manager/Team Leader) -->
     <div class="sig-box">
-      <div class="sig-label">DISETUJUI OLEH,</div>
-      <div class="sig-name">( ${header.deptHeadName || "___________________"} )</div>
-      <div class="sig-title">DEPARTMENT HEAD</div>
+      <div class="sig-header">DI PERIKSA OLEH,</div>
+      <div class="sig-name">( ${managerName} )</div>
+      <div class="sig-title">${managerTitle}</div>
+      <div class="sig-date">${dateStampText}</div>
     </div>
-  </div>
-
-  <div class="date-stamp">
-    DATE : ${new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })}
+    <!-- Col N: DISETUJUI OLEH -->
+    <div class="sig-box">
+      <div class="sig-header">DISETUJUI OLEH,</div>
+      <div class="sig-name">( ${deptHeadName} )</div>
+      <div class="sig-title">${deptHeadTitle}</div>
+      <div class="sig-date">${dateStampText}</div>
+    </div>
   </div>
 
   <script>
