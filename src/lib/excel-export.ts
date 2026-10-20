@@ -55,9 +55,14 @@ function parseDateToExcelDate(dateStr: string): Date {
 
 async function loadTemplateBuffer(path: string): Promise<ArrayBuffer | Uint8Array> {
   if (typeof window !== "undefined") {
-    const res = await fetch(path);
+    // On GitHub Pages the app lives at /<repo-name>/, so static assets must
+    // be fetched with that prefix.  NEXT_PUBLIC_BASE_PATH is set in CI to
+    // e.g. "/timesheetGenerator"; empty string in local dev.
+    const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+    const url = `${base}${path}`;
+    const res = await fetch(url);
     if (!res.ok) {
-      throw new Error(`Gagal memuat template Excel (${path}): ${res.statusText}`);
+      throw new Error(`Gagal memuat template Excel (${url}): ${res.statusText}`);
     }
     return await res.arrayBuffer();
   } else {
