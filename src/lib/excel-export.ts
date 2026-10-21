@@ -169,22 +169,24 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
     // Unhide row
     ws.getRow(r).hidden = false;
 
-    // Col B: Date (Always GRAY_FILL FFBFBFBF per official template and sample)
+    const isWeekendDayOff = isWeekend && row.status !== "P";
+    const isHolidayDayOff = (isHoliday || row.status === "H") && row.status !== "P";
+    const isDayOff = isWeekendDayOff || isHolidayDayOff;
+
+    // Col B: Date (Gray background ONLY for weekend and holiday)
     const cellB = ws.getCell(`B${r}`);
     cellB.value = dateObj;
     cellB.numFmt = 'd"-"mmm"-"yyyy';
     cellB.font = { name: "Calibri", size: 9, bold: false, color: { argb: "FF000000" } };
     cellB.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-    cellB.fill = GRAY_FILL;
+    cellB.fill = isDayOff ? GRAY_FILL : NO_FILL;
 
     // Apply clean outer borders
     applyTimesheetRowBorders(ws, r);
 
-    const isWeekendDayOff = isWeekend && row.status !== "P";
-    const isHolidayDayOff = (isHoliday || row.status === "H") && row.status !== "P";
-
     if (isWeekendDayOff) {
       // Weekend non-working day: All columns gray, value "Weekend" centered and bold
+      cellB.fill = GRAY_FILL;
       dataCols.forEach((colLetter) => {
         ws.getCell(`${colLetter}${r}`).fill = GRAY_FILL;
         ws.getCell(`${colLetter}${r}`).value = null;
@@ -195,6 +197,7 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
       cellL.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     } else if (isHolidayDayOff) {
       // Holiday non-working day: All columns gray, activity centered and bold
+      cellB.fill = GRAY_FILL;
       dataCols.forEach((colLetter) => {
         ws.getCell(`${colLetter}${r}`).fill = GRAY_FILL;
         ws.getCell(`${colLetter}${r}`).value = null;
@@ -205,7 +208,8 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
       cellL.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     } else if (isPresent) {
       countP++;
-      // Working day (Present / Hadir) - NO_FILL (transparent) for columns C through R
+      // Working day (Present / Hadir) - NO_FILL (transparent) for entire row
+      cellB.fill = NO_FILL;
       dataCols.forEach((colLetter) => {
         ws.getCell(`${colLetter}${r}`).fill = NO_FILL;
       });
