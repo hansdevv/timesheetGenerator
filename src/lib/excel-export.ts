@@ -523,22 +523,22 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
   const cellB_sig = ws.getCell(`B${sigStart}`);
   cellB_sig.value = ` (   ${header.name || ""}   )`;
   cellB_sig.font = sigNameFont;
-  cellB_sig.alignment = { horizontal: "center", vertical: "middle" };
+  cellB_sig.alignment = { horizontal: "center", vertical: "bottom" };
 
   const cellE_sig = ws.getCell(`E${sigStart}`);
   cellE_sig.value = `(   ${header.officerName || "Valentino Tarigan"}   )`;
   cellE_sig.font = sigNameFont;
-  cellE_sig.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+  cellE_sig.alignment = { horizontal: "center", vertical: "bottom", wrapText: true };
 
   const cellI_sig = ws.getCell(`I${sigStart}`);
   cellI_sig.value = `(   ${header.managerName || "Gita Kartika"}   )`;
   cellI_sig.font = sigNameFont;
-  cellI_sig.alignment = { horizontal: "center", vertical: "middle" };
+  cellI_sig.alignment = { horizontal: "center", vertical: "bottom" };
 
   const cellN_sig = ws.getCell(`N${sigStart}`);
   cellN_sig.value = `(  ${header.deptHeadName || "Adhy Perdhana"}  )`;
   cellN_sig.font = sigNameFont;
-  cellN_sig.alignment = { horizontal: "center", vertical: "middle" };
+  cellN_sig.alignment = { horizontal: "center", vertical: "bottom" };
 
   applyBoxBorder(ws, "B", "D", sigStart, sigEnd);
   applyBoxBorder(ws, "E", "H", sigStart, sigEnd);
@@ -866,7 +866,7 @@ export async function exportSPLExcel(data: SPLData): Promise<void> {
   const cellSigB = ws.getCell(`B${sigNameRow}`);
   cellSigB.value = ` ( ${data.name || ""} )`;
   cellSigB.font = splSigFont;
-  cellSigB.alignment = { horizontal: "center" };
+  cellSigB.alignment = { horizontal: "center", vertical: "bottom" };
 
   const cellRoleB = ws.getCell(`B${sigRoleRow}`);
   cellRoleB.value = `${data.position || "Developer"}\n`;
@@ -876,7 +876,7 @@ export async function exportSPLExcel(data: SPLData): Promise<void> {
   const cellSigG = ws.getCell(`G${sigNameRow}`);
   cellSigG.value = `( ${data.teamLeaderName || "Gita Kartika"} )`;
   cellSigG.font = splSigFont;
-  cellSigG.alignment = { horizontal: "center" };
+  cellSigG.alignment = { horizontal: "center", vertical: "bottom" };
 
   const cellRoleG = ws.getCell(`G${sigRoleRow}`);
   cellRoleG.value = data.teamLeaderTitle || "Pgs. Team Leader";
@@ -886,7 +886,7 @@ export async function exportSPLExcel(data: SPLData): Promise<void> {
   const cellSigK = ws.getCell(`K${sigNameRow}`);
   cellSigK.value = `( ${data.deptHeadName || "Adhy Perdhana"} )`;
   cellSigK.font = splSigFont;
-  cellSigK.alignment = { horizontal: "center" };
+  cellSigK.alignment = { horizontal: "center", vertical: "bottom" };
 
   const cellRoleK = ws.getCell(`K${sigRoleRow}`);
   cellRoleK.value = `${data.deptHeadTitle || "Department Head"}\n`;

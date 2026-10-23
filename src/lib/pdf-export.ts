@@ -415,9 +415,10 @@ export function exportTimesheetPDF(data: TimesheetData): void {
       height: 15px;
     }
     .sig-box-cell {
-      height: 48px;
+      height: 52px;
       text-align: center;
-      vertical-align: middle;
+      vertical-align: bottom;
+      padding-bottom: 3px;
       font-weight: 700;
       font-size: 7.5pt;
     }
