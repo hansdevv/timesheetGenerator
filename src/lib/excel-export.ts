@@ -25,6 +25,13 @@ const NO_FILL: ExcelJS.Fill = {
 };
 
 /**
+ * Safely assign a fill to an ExcelJS cell without mutating shared _style references from the template.
+ */
+function setCellFill(cell: ExcelJS.Cell, fill: ExcelJS.Fill) {
+  cell.style = { ...cell.style, fill };
+}
+
+/**
  * Apply clean outer borders for a timesheet data row to prevent internal
  * vertical lines across the merged L:N activity cells.
  */
@@ -50,6 +57,36 @@ function applyTimesheetRowBorders(ws: ExcelJS.Worksheet, r: number) {
     top: { style: "thin", color: { argb: "FF000000" } },
     bottom: { style: "thin", color: { argb: "FF000000" } },
   };
+}
+
+/**
+ * Helper to apply outer thin borders around a rectangular cell range [startCol..endCol, startRow..endRow]
+ */
+function applyBoxBorder(
+  ws: ExcelJS.Worksheet,
+  startCol: string,
+  endCol: string,
+  startRow: number,
+  endRow: number
+) {
+  const startColCode = startCol.charCodeAt(0);
+  const endColCode = endCol.charCodeAt(0);
+  for (let r = startRow; r <= endRow; r++) {
+    for (let c = startColCode; c <= endColCode; c++) {
+      const colLetter = String.fromCharCode(c);
+      const isTop = r === startRow;
+      const isBottom = r === endRow;
+      const isLeft = c === startColCode;
+      const isRight = c === endColCode;
+
+      ws.getCell(`${colLetter}${r}`).border = {
+        top: isTop ? { style: "thin", color: { argb: "FF000000" } } : undefined,
+        bottom: isBottom ? { style: "thin", color: { argb: "FF000000" } } : undefined,
+        left: isLeft ? { style: "thin", color: { argb: "FF000000" } } : undefined,
+        right: isRight ? { style: "thin", color: { argb: "FF000000" } } : undefined,
+      };
+    }
+  }
 }
 
 /**
@@ -103,7 +140,7 @@ async function loadTemplateBuffer(path: string): Promise<ArrayBuffer | Uint8Arra
 
 /**
  * Export Timesheet Excel using the official Adidata Excel template.
- * Matches: sample_Time Sheet September 2026_901513_Mohamad Burhanudin.xlsx
+ * Matches: sample_Time Sheet September 2026_901513_Mohamad Burhanudin.xlsx (100% compliance)
  */
 export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
   const { header, rows } = data;
@@ -145,9 +182,91 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
   cellD6.font = { name: "Calibri", size: 9, bold: true, color: { argb: "FF000000" } };
 
   const numDays = rows.length;
+  const rowsToRemove = 31 - numDays;
 
-  // 2. Fill Daily Timesheet Rows (Rows 10 to 10 + numDays - 1)
-  // Master template has 31 rows (10 to 40), avoiding destructive spliceRows.
+  // 2. Dynamically adjust rows for months with less than 31 days (e.g. 30 days for September, 28/29 for February)
+  // This removes extra day rows completely without leaving hidden rows, matching the sample template 100%!
+  if (rowsToRemove > 0) {
+    // A. Unmerge activity cells (L:N) on extra rows being removed
+    for (let r = 10 + numDays; r <= 40; r++) {
+      try {
+        ws.unMergeCells(`L${r}:N${r}`);
+      } catch {}
+    }
+
+    // B. Unmerge the bottom sections before splicing
+    const bottomMerges = [
+      "B41:E41",
+      "L41:N41",
+      "B42:N42",
+      "B43:D43",
+      "E43:M43",
+      "B44:D48",
+      "E44:H48",
+      "I44:M48",
+      "N44:N48",
+      "B49:D49",
+      "E49:H49",
+      "I49:M49",
+      "B50:D50",
+      "E50:H50",
+      "I50:M50",
+    ];
+    bottomMerges.forEach((range) => {
+      try {
+        ws.unMergeCells(range);
+      } catch {}
+    });
+
+    // C. Splice out the extra day rows
+    ws.spliceRows(10 + numDays, rowsToRemove);
+
+    // D. Calculate new row numbers
+    const sumR = 10 + numDays;
+    const empR = 11 + numDays;
+    const hdrR = 12 + numDays;
+    const sigStart = 13 + numDays;
+    const sigEnd = 17 + numDays;
+    const roleR = 18 + numDays;
+    const dateR = 19 + numDays;
+
+    // E. Re-merge bottom sections at their new shifted row positions
+    ws.mergeCells(`B${sumR}:E${sumR}`);
+    ws.mergeCells(`L${sumR}:N${sumR}`);
+    ws.mergeCells(`B${empR}:N${empR}`);
+    ws.mergeCells(`B${hdrR}:D${hdrR}`);
+    ws.mergeCells(`E${hdrR}:M${hdrR}`);
+    ws.mergeCells(`B${sigStart}:D${sigEnd}`);
+    ws.mergeCells(`E${sigStart}:H${sigEnd}`);
+    ws.mergeCells(`I${sigStart}:M${sigEnd}`);
+    ws.mergeCells(`N${sigStart}:N${sigEnd}`);
+    ws.mergeCells(`B${roleR}:D${roleR}`);
+    ws.mergeCells(`E${roleR}:H${roleR}`);
+    ws.mergeCells(`I${roleR}:M${roleR}`);
+    ws.mergeCells(`B${dateR}:D${dateR}`);
+    ws.mergeCells(`E${dateR}:H${dateR}`);
+    ws.mergeCells(`I${dateR}:M${dateR}`);
+
+    // F. Set exact row heights matching the official template and sample
+    ws.getRow(hdrR).height = 10.5;
+    ws.getRow(sigStart).height = 10.5;
+    ws.getRow(sigStart + 1).height = 18;
+    ws.getRow(sigStart + 2).height = 16.5;
+    ws.getRow(sigStart + 3).height = 16.5;
+    ws.getRow(sigStart + 4).height = 16.5;
+    ws.getRow(roleR).height = 14.25;
+    ws.getRow(dateR).height = 14.25;
+  }
+
+  // Row index definitions for summary & signatures
+  const sumR = 10 + numDays;
+  const empR = 11 + numDays;
+  const hdrR = 12 + numDays;
+  const sigStart = 13 + numDays;
+  const sigEnd = 17 + numDays;
+  const roleR = 18 + numDays;
+  const dateR = 19 + numDays;
+
   let countP = 0;
   let countS = 0;
   let countBT = 0;
@@ -157,6 +276,7 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
 
   const dataCols = ["C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"];
 
+  // 3. Fill Daily Timesheet Rows (Rows 10 to 10 + numDays - 1)
   for (let i = 0; i < numDays; i++) {
     const r = 10 + i;
     const row = rows[i];
@@ -173,23 +293,24 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
     const isHolidayDayOff = (isHoliday || row.status === "H") && row.status !== "P";
     const isDayOff = isWeekendDayOff || isHolidayDayOff;
 
-    // Col B: Date (Gray background ONLY for weekend and holiday)
+    // Col B: Date (Gray background ONLY for weekend and holiday!)
     const cellB = ws.getCell(`B${r}`);
     cellB.value = dateObj;
     cellB.numFmt = 'd"-"mmm"-"yyyy';
     cellB.font = { name: "Calibri", size: 9, bold: false, color: { argb: "FF000000" } };
     cellB.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
-    cellB.fill = isDayOff ? GRAY_FILL : NO_FILL;
+    setCellFill(cellB, isDayOff ? GRAY_FILL : NO_FILL);
 
     // Apply clean outer borders
     applyTimesheetRowBorders(ws, r);
 
     if (isWeekendDayOff) {
       // Weekend non-working day: All columns gray, value "Weekend" centered and bold
-      cellB.fill = GRAY_FILL;
+      setCellFill(cellB, GRAY_FILL);
       dataCols.forEach((colLetter) => {
-        ws.getCell(`${colLetter}${r}`).fill = GRAY_FILL;
-        ws.getCell(`${colLetter}${r}`).value = null;
+        const c = ws.getCell(`${colLetter}${r}`);
+        setCellFill(c, GRAY_FILL);
+        c.value = null;
       });
       const cellL = ws.getCell(`L${r}`);
       cellL.value = "Weekend";
@@ -197,10 +318,11 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
       cellL.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     } else if (isHolidayDayOff) {
       // Holiday non-working day: All columns gray, activity centered and bold
-      cellB.fill = GRAY_FILL;
+      setCellFill(cellB, GRAY_FILL);
       dataCols.forEach((colLetter) => {
-        ws.getCell(`${colLetter}${r}`).fill = GRAY_FILL;
-        ws.getCell(`${colLetter}${r}`).value = null;
+        const c = ws.getCell(`${colLetter}${r}`);
+        setCellFill(c, GRAY_FILL);
+        c.value = null;
       });
       const cellL = ws.getCell(`L${r}`);
       cellL.value = row.activity || row.holidayName || "Hari Libur Nasional";
@@ -208,10 +330,10 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
       cellL.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     } else if (isPresent) {
       countP++;
-      // Working day (Present / Hadir) - NO_FILL (transparent) for entire row
-      cellB.fill = NO_FILL;
+      // Working day (Present / Hadir) - NO_FILL for all columns (including B)
+      setCellFill(cellB, NO_FILL);
       dataCols.forEach((colLetter) => {
-        ws.getCell(`${colLetter}${r}`).fill = NO_FILL;
+        setCellFill(ws.getCell(`${colLetter}${r}`), NO_FILL);
       });
 
       // Start Time (24h format e.g. 08:52:48)
@@ -293,8 +415,9 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
       else if (row.status === "V") countV++;
       else countX++;
 
+      setCellFill(cellB, NO_FILL);
       dataCols.forEach((colLetter) => {
-        ws.getCell(`${colLetter}${r}`).fill = NO_FILL;
+        setCellFill(ws.getCell(`${colLetter}${r}`), NO_FILL);
         ws.getCell(`${colLetter}${r}`).value = null;
       });
 
@@ -334,102 +457,124 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
     }
   }
 
-  // 3. Hide extra rows if month has less than 31 days (e.g. 30 days hides row 40; 28 days hides 38-40)
-  for (let r = 10 + numDays; r <= 40; r++) {
-    ws.getRow(r).hidden = true;
-    for (let c = 1; c <= 18; c++) {
-      ws.getRow(r).getCell(c).value = null;
-    }
-  }
-
-  // 4. Fill Summary Row (Row 41)
+  // 4. Fill Summary Row (Row sumR)
   const lastDataRow = 9 + numDays;
   const summaryCols = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R"];
   summaryCols.forEach((colLetter) => {
-    ws.getCell(`${colLetter}41`).fill = NO_FILL;
+    setCellFill(ws.getCell(`${colLetter}${sumR}`), NO_FILL);
   });
 
   const summaryFont: Partial<ExcelJS.Font> = { name: "Calibri", size: 12, bold: true, color: { argb: "FF000000" } };
   const summaryAlign: Partial<ExcelJS.Alignment> = { horizontal: "center", vertical: "middle", wrapText: true };
 
-  const summarySpecs: Array<{ col: string; formula: string; result: number }> = [
+  const summarySpecs: Array<{ col: string; formula: string; result: number | undefined }> = [
     { col: "F", formula: `COUNTIF(F10:F${lastDataRow},"P")`, result: countP },
-    { col: "G", formula: `COUNTIF(G10:G${lastDataRow},"S")`, result: countS },
-    { col: "H", formula: `COUNTIF(H10:H${lastDataRow},"BT")`, result: countBT },
-    { col: "I", formula: `COUNTIF(I10:I${lastDataRow},"PM")`, result: countPM },
-    { col: "J", formula: `COUNTIF(J10:J${lastDataRow},"V")`, result: countV },
-    { col: "K", formula: `COUNTIF(K10:K${lastDataRow},"x")`, result: countX },
+    { col: "G", formula: `COUNTIF(G10:G${lastDataRow},"S")`, result: countS || undefined },
+    { col: "H", formula: `COUNTIF(H10:H${lastDataRow},"BT")`, result: countBT || undefined },
+    { col: "I", formula: `COUNTIF(I10:I${lastDataRow},"PM")`, result: countPM || undefined },
+    { col: "J", formula: `COUNTIF(J10:J${lastDataRow},"V")`, result: countV || undefined },
+    { col: "K", formula: `COUNTIF(K10:K${lastDataRow},"x")`, result: countX || undefined },
   ];
 
   summarySpecs.forEach(({ col, formula, result }) => {
-    const cell = ws.getCell(`${col}41`);
+    const cell = ws.getCell(`${col}${sumR}`);
     cell.value = { formula, result };
     cell.font = summaryFont;
     cell.alignment = summaryAlign;
+    cell.border = THIN_BORDER;
   });
 
-  // 5. Fill Signatures & Footer (Rows 43 - 50) with pristine merges preserved
-  // Row 43: Headers
+  // Borders for Summary Row
+  applyBoxBorder(ws, "B", "E", sumR, sumR);
+  applyBoxBorder(ws, "L", "N", sumR, sumR);
+  ["O", "P", "Q", "R"].forEach((c) => {
+    ws.getCell(`${c}${sumR}`).border = THIN_BORDER;
+    ws.getCell(`${c}${sumR}`).value = null;
+  });
+
+  // 5. Clear empty separator row (empR)
+  for (let c = 1; c <= 18; c++) {
+    ws.getRow(empR).getCell(c).value = null;
+    ws.getRow(empR).getCell(c).border = {};
+    setCellFill(ws.getRow(empR).getCell(c), NO_FILL);
+  }
+
+  // 6. Fill Signatures & Footer (Rows hdrR to dateR)
+  // Header Row (hdrR)
   const sigHeaderFont: Partial<ExcelJS.Font> = { name: "Calibri", size: 9, bold: true, color: { argb: "FF000000" } };
-  const cellB43 = ws.getCell("B43");
-  cellB43.value = "TTD PEGAWAI,";
-  cellB43.font = sigHeaderFont;
+  const cellB_hdr = ws.getCell(`B${hdrR}`);
+  cellB_hdr.value = "TTD PEGAWAI,";
+  cellB_hdr.font = sigHeaderFont;
 
-  const cellE43 = ws.getCell("E43");
-  cellE43.value = "DI PERIKSA OLEH,";
-  cellE43.font = sigHeaderFont;
+  const cellE_hdr = ws.getCell(`E${hdrR}`);
+  cellE_hdr.value = "DI PERIKSA OLEH,";
+  cellE_hdr.font = sigHeaderFont;
 
-  const cellN43 = ws.getCell("N43");
-  cellN43.value = "DISETUJUI OLEH,";
-  cellN43.font = sigHeaderFont;
+  const cellN_hdr = ws.getCell(`N${hdrR}`);
+  cellN_hdr.value = "DISETUJUI OLEH,";
+  cellN_hdr.font = sigHeaderFont;
 
-  // Row 44: Names in Signature Box
+  applyBoxBorder(ws, "B", "D", hdrR, hdrR);
+  applyBoxBorder(ws, "E", "M", hdrR, hdrR);
+  ws.getCell(`N${hdrR}`).border = THIN_BORDER;
+
+  // Names in Signature Box (sigStart to sigEnd)
   const sigNameFont: Partial<ExcelJS.Font> = { name: "Calibri", size: 9, bold: true, color: { argb: "FF000000" } };
-  const cellB44 = ws.getCell("B44");
-  cellB44.value = ` (   ${header.name || ""}   )`;
-  cellB44.font = sigNameFont;
-  cellB44.alignment = { horizontal: "center" };
+  const cellB_sig = ws.getCell(`B${sigStart}`);
+  cellB_sig.value = ` (   ${header.name || ""}   )`;
+  cellB_sig.font = sigNameFont;
+  cellB_sig.alignment = { horizontal: "center", vertical: "middle" };
 
-  const cellE44 = ws.getCell("E44");
-  cellE44.value = `(   ${header.officerName || "Valentino Tarigan"}   )`;
-  cellE44.font = sigNameFont;
-  cellE44.alignment = { horizontal: "center", wrapText: true };
+  const cellE_sig = ws.getCell(`E${sigStart}`);
+  cellE_sig.value = `(   ${header.officerName || "Valentino Tarigan"}   )`;
+  cellE_sig.font = sigNameFont;
+  cellE_sig.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
 
-  const cellI44 = ws.getCell("I44");
-  cellI44.value = `(   ${header.managerName || "Gita Kartika"}   )`;
-  cellI44.font = sigNameFont;
-  cellI44.alignment = { horizontal: "center" };
+  const cellI_sig = ws.getCell(`I${sigStart}`);
+  cellI_sig.value = `(   ${header.managerName || "Gita Kartika"}   )`;
+  cellI_sig.font = sigNameFont;
+  cellI_sig.alignment = { horizontal: "center", vertical: "middle" };
 
-  const cellN44 = ws.getCell("N44");
-  cellN44.value = `(  ${header.deptHeadName || "Adhy Perdhana"}  )`;
-  cellN44.font = sigNameFont;
-  cellN44.alignment = { horizontal: "center" };
+  const cellN_sig = ws.getCell(`N${sigStart}`);
+  cellN_sig.value = `(  ${header.deptHeadName || "Adhy Perdhana"}  )`;
+  cellN_sig.font = sigNameFont;
+  cellN_sig.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Row 49: Titles / Roles
+  applyBoxBorder(ws, "B", "D", sigStart, sigEnd);
+  applyBoxBorder(ws, "E", "H", sigStart, sigEnd);
+  applyBoxBorder(ws, "I", "M", sigStart, sigEnd);
+  applyBoxBorder(ws, "N", "N", sigStart, sigEnd);
+
+  // Titles / Roles Row (roleR)
   const sigRoleFont: Partial<ExcelJS.Font> = { name: "Calibri", size: 10, bold: true, color: { argb: "FF000000" } };
   const sigRoleAlign: Partial<ExcelJS.Alignment> = { horizontal: "center", vertical: "middle" };
 
-  const cellB49 = ws.getCell("B49");
-  cellB49.value = header.employeeTitle || "Pegawai";
-  cellB49.font = sigRoleFont;
-  cellB49.alignment = sigRoleAlign;
+  const cellB_role = ws.getCell(`B${roleR}`);
+  cellB_role.value = header.employeeTitle || "Pegawai";
+  cellB_role.font = sigRoleFont;
+  cellB_role.alignment = sigRoleAlign;
 
-  const cellE49 = ws.getCell("E49");
-  cellE49.value = header.officerTitle || "Officer";
-  cellE49.font = sigRoleFont;
-  cellE49.alignment = sigRoleAlign;
+  const cellE_role = ws.getCell(`E${roleR}`);
+  cellE_role.value = header.officerTitle || "Officer";
+  cellE_role.font = sigRoleFont;
+  cellE_role.alignment = sigRoleAlign;
 
-  const cellI49 = ws.getCell("I49");
-  cellI49.value = header.managerTitle || "Pgs. Team Leader";
-  cellI49.font = sigRoleFont;
-  cellI49.alignment = sigRoleAlign;
+  const cellI_role = ws.getCell(`I${roleR}`);
+  cellI_role.value = header.managerTitle || "Pgs. Team Leader";
+  cellI_role.font = sigRoleFont;
+  cellI_role.alignment = sigRoleAlign;
 
-  const cellN49 = ws.getCell("N49");
-  cellN49.value = header.deptHeadTitle || "Department Head";
-  cellN49.font = sigRoleFont;
-  cellN49.alignment = sigRoleAlign;
+  const cellN_role = ws.getCell(`N${roleR}`);
+  cellN_role.value = header.deptHeadTitle || "Department Head";
+  cellN_role.font = sigRoleFont;
+  cellN_role.alignment = sigRoleAlign;
 
-  // Row 50: Date Stamp
+  applyBoxBorder(ws, "B", "D", roleR, roleR);
+  applyBoxBorder(ws, "E", "H", roleR, roleR);
+  applyBoxBorder(ws, "I", "M", roleR, roleR);
+  ws.getCell(`N${roleR}`).border = THIN_BORDER;
+
+  // Date Stamp Row (dateR)
   const nextMonth = header.month === 12 ? 1 : header.month + 1;
   const nextYear = header.month === 12 ? header.year + 1 : header.year;
   const defaultDateStamp = `01 ${MONTH_NAMES_TITLE[nextMonth - 1]} ${nextYear}`;
@@ -437,14 +582,32 @@ export async function exportTimesheetExcel(data: TimesheetData): Promise<void> {
   const dateStampFont: Partial<ExcelJS.Font> = { name: "Calibri", size: 9, bold: false, color: { argb: "FF000000" } };
   const dateStampAlign: Partial<ExcelJS.Alignment> = { horizontal: "center", vertical: "middle" };
 
-  ["B50", "E50", "I50", "N50"].forEach((cellAddr) => {
-    const c = ws.getCell(cellAddr);
-    c.value = dateStampText;
-    c.font = dateStampFont;
-    c.alignment = dateStampAlign;
-  });
+  const cellB_dt = ws.getCell(`B${dateR}`);
+  cellB_dt.value = dateStampText;
+  cellB_dt.font = dateStampFont;
+  cellB_dt.alignment = dateStampAlign;
 
-  // 6. Generate and trigger download with universal OOXML format
+  const cellE_dt = ws.getCell(`E${dateR}`);
+  cellE_dt.value = `${dateStampText}\n`;
+  cellE_dt.font = dateStampFont;
+  cellE_dt.alignment = dateStampAlign;
+
+  const cellI_dt = ws.getCell(`I${dateR}`);
+  cellI_dt.value = `${dateStampText}\n`;
+  cellI_dt.font = dateStampFont;
+  cellI_dt.alignment = dateStampAlign;
+
+  const cellN_dt = ws.getCell(`N${dateR}`);
+  cellN_dt.value = `${dateStampText}\n`;
+  cellN_dt.font = dateStampFont;
+  cellN_dt.alignment = dateStampAlign;
+
+  applyBoxBorder(ws, "B", "D", dateR, dateR);
+  applyBoxBorder(ws, "E", "H", dateR, dateR);
+  applyBoxBorder(ws, "I", "M", dateR, dateR);
+  ws.getCell(`N${dateR}`).border = THIN_BORDER;
+
+  // 7. Generate and trigger download with universal OOXML format
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -687,7 +850,8 @@ export async function exportSPLExcel(data: SPLData): Promise<void> {
     const en = parseTimeToExcelFraction(e.endTime) || 0;
     return acc + Math.max(0, en - s - 1 / 24);
   }, 0);
-  cellSum.value = { formula: `SUM(I15:I${totRow - 1})`, result: totalNet };
+  const sumFormula = entriesCount === 1 ? `SUM(I15)` : `SUM(I15:I${totRow - 1})`;
+  cellSum.value = { formula: sumFormula, result: totalNet };
   cellSum.numFmt = "h:mm:ss";
   cellSum.font = tableDataFont;
   cellSum.alignment = centerMiddleAlign;
@@ -738,4 +902,3 @@ export async function exportSPLExcel(data: SPLData): Promise<void> {
   const fileName = `Surat_Perintah_Lembur_${(data.name || "Pegawai").replace(/\s+/g, " ")}_tgl_${firstDate}.xlsx`;
   saveAs(blob, fileName);
 }
-

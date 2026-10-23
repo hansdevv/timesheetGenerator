@@ -17,7 +17,7 @@ import {
   saveTimesheetToHistory,
 } from "@/lib/types";
 import { exportTimesheetExcel, exportSPLExcel } from "@/lib/excel-export";
-import { exportTimesheetPDF } from "@/lib/pdf-export";
+import { exportTimesheetPDF, exportSPLPDF } from "@/lib/pdf-export";
 import { SAMPLE_HEADER, getSampleTimesheetRows } from "@/lib/sample-data";
 import {
   ClockIcon,
@@ -424,6 +424,41 @@ export default function TimesheetGenerator() {
       showToast(`Gagal export SPL: ${e instanceof Error ? e.message : "Coba lagi"}`, "warning");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  // Handle single SPL PDF Export
+  const handleExportSingleSPLPDF = (row: TimesheetRow) => {
+    try {
+      const otStart = row.overtimeStartTime || (row.isWeekend ? (row.startTime || "09:00") : "17:00");
+      const otEnd = row.overtimeEndTime || (row.endTime || "20:00");
+      const formattedStart = otStart.length === 5 ? `${otStart}:00` : otStart;
+      const formattedEnd = otEnd.length === 5 ? `${otEnd}:00` : otEnd;
+
+      const splData: SPLData = {
+        npp: header.npp,
+        name: header.name,
+        department: header.department,
+        position: header.employeeTitle || "Developer",
+        teamLeaderName: header.managerName || "Gita Kartika",
+        teamLeaderTitle: header.managerTitle || "Pgs. Team Leader",
+        deptHeadName: header.deptHeadName || "Adhy Perdhana",
+        deptHeadTitle: header.deptHeadTitle || "Department Head",
+        entries: [
+          {
+            no: 1,
+            date: row.date,
+            startTime: formattedStart,
+            endTime: formattedEnd,
+            tasks: row.activity || "1. Support SIT\n2. Perbaikan Defect",
+          },
+        ],
+      };
+      exportSPLPDF(splData);
+      showToast(`Pratinjau SPL PDF resmi tanggal ${row.date} dibuka!`, "info");
+    } catch (e: unknown) {
+      console.error(e);
+      showToast("Gagal memproses cetak PDF SPL", "warning");
     }
   };
 
@@ -1960,6 +1995,17 @@ export default function TimesheetGenerator() {
                       onClick={() => setSelectedSPLRow(null)}
                     >
                       Tutup
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        handleExportSingleSPLPDF(selectedSPLRow);
+                        setSelectedSPLRow(null);
+                      }}
+                    >
+                      <PrinterIcon size={14} />
+                      <span>Cetak / PDF SPL</span>
                     </button>
                     <button
                       type="button"

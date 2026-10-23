@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import type { SPLData, SPLEntry } from "@/lib/types";
 import { calcHours, loadTimesheetDraft, isOvertimeRow, formatTimeWithSeconds } from "@/lib/types";
 import { exportSPLExcel } from "@/lib/excel-export";
+import { exportSPLPDF } from "@/lib/pdf-export";
 import { getSampleSPLData } from "@/lib/sample-data";
 import {
   FileTextIcon,
@@ -138,6 +139,16 @@ export default function SPLPage() {
       showToast(`Gagal export SPL: ${e instanceof Error ? e.message : "Coba lagi"}`, "warning");
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportPDF = () => {
+    try {
+      exportSPLPDF(data);
+      showToast("Pratinjau Surat Perintah Lembur (SPL) PDF resmi dibuka. Siap dicetak!", "info");
+    } catch (e: unknown) {
+      console.error(e);
+      showToast("Gagal memproses cetak PDF SPL", "warning");
     }
   };
 
@@ -566,21 +577,32 @@ export default function SPLPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem" }}>
             <div>
               <div style={{ fontWeight: 700, color: "var(--text-hi)", fontSize: "1rem" }}>
-                Generate Dokumen SPL Excel (.xlsx)
+                Generate Dokumen SPL Excel (.xlsx) &amp; Cetak PDF
               </div>
               <div style={{ fontSize: "0.82rem", color: "var(--text-mid)", marginTop: "2px" }}>
-                Format resmi Adidata lengkap dengan logo, rincian jam lembur, dan kolom tanda tangan.
+                Format resmi Adidata lengkap dengan nomor penugasan, rincian jam lembur, dan kolom tanda tangan.
               </div>
             </div>
-            <button
-              type="button"
-              className="btn btn-success btn-lg"
-              onClick={handleExport}
-              disabled={isExporting || !data.name || !data.npp}
-            >
-              <DownloadIcon size={16} />
-              <span>{isExporting ? "Memproses Dokumen..." : "Download SPL Excel (.xlsx)"}</span>
-            </button>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-lg"
+                onClick={handleExportPDF}
+                disabled={isExporting || !data.name || !data.npp}
+              >
+                <FileTextIcon size={16} />
+                <span>Cetak / Simpan PDF</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-success btn-lg"
+                onClick={handleExport}
+                disabled={isExporting || !data.name || !data.npp}
+              >
+                <DownloadIcon size={16} />
+                <span>{isExporting ? "Memproses Dokumen..." : "Download SPL Excel (.xlsx)"}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

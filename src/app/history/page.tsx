@@ -11,6 +11,7 @@ import {
   MONTH_NAMES_TITLE,
 } from "@/lib/types";
 import { exportTimesheetExcel } from "@/lib/excel-export";
+import { exportTimesheetPDF } from "@/lib/pdf-export";
 import {
   ArchiveIcon,
   CalendarIcon,
@@ -21,6 +22,7 @@ import {
   TrashIcon,
   AlertCircleIcon,
   CheckCircleIcon,
+  FileTextIcon,
 } from "@/components/Icons";
 
 export default function HistoryPage() {
@@ -336,6 +338,15 @@ export default function HistoryPage() {
                     </button>
 
                     <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => exportTimesheetPDF({ header: rec.header, rows: rec.rows })}
+                        title="Cetak atau Simpan sebagai PDF"
+                      >
+                        <FileTextIcon size={12} />
+                        <span>PDF</span>
+                      </button>
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
