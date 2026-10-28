@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
 
@@ -17,19 +16,10 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Timesheet & Surat Lembur | Adidata",
-  description: "Portal timesheet dan surat perintah lembur (SPL) resmi Adidata. Export ke Excel & PDF, auto-save, dan template standar siap pakai.",
+  title: "Timesheet, SPL & Permohonan Izin Generator | Adidata",
+  description:
+    "Generator dokumen administrasi kerja resmi Adidata (Timesheet Bulanan, Surat Perintah Lembur, dan Surat Permohonan Izin). Ekspor ke Excel (.xlsx) & PDF 100% client-side.",
 };
-
-const themeInitScript = `
-(function() {
-  try {
-    var saved = localStorage.getItem('ts-theme');
-    var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-    document.documentElement.setAttribute('data-theme', theme);
-  } catch (e) {}
-})();
-`;
 
 export default function RootLayout({
   children,
@@ -37,18 +27,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" className={`h-full ${inter.variable} ${jetbrainsMono.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
-      <head>
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: themeInitScript }}
-        />
-      </head>
-      <body className="app-layout" style={{ fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)" }}>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+    <html
+      lang="id"
+      data-theme="dark"
+      className={`h-full ${inter.variable} ${jetbrainsMono.variable}`}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
+      <body
+        className="app-layout"
+        style={{ fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)" }}
+      >
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

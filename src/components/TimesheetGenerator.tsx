@@ -19,6 +19,7 @@ import {
 import { exportTimesheetExcel, exportSPLExcel } from "@/lib/excel-export";
 import { exportTimesheetPDF, exportSPLPDF } from "@/lib/pdf-export";
 import { SAMPLE_HEADER, getSampleTimesheetRows } from "@/lib/sample-data";
+import { useAppStore } from "@/lib/storage";
 import {
   ClockIcon,
   BriefcaseIcon,
@@ -67,6 +68,7 @@ const DEFAULT_HEADER: TimesheetHeader = {
 const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_DATE.getFullYear() - 2 + i);
 
 export default function TimesheetGenerator() {
+  const { profile, holidays, timesheetDraft, setTimesheetDraft, addHistoryRecord } = useAppStore();
   const [activeTab, setActiveTab] = useState<"timesheet" | "spl" | "export">("timesheet");
   const [header, setHeader] = useState<TimesheetHeader>(DEFAULT_HEADER);
   const [rows, setRows] = useState<TimesheetRow[]>(() =>
@@ -81,9 +83,31 @@ export default function TimesheetGenerator() {
 
   // Load draft on mount (client-only, completely prevents SSR hydration mismatch)
   useEffect(() => {
-    const draft = loadTimesheetDraft();
+    const draft = timesheetDraft || loadTimesheetDraft();
     if (draft?.header) {
-      setHeader(draft.header);
+      setHeader({
+        ...draft.header,
+        signatureDataUrl: draft.header.signatureDataUrl || profile.signatureDataUrl,
+      });
+    } else if (profile?.name) {
+      setHeader((prev) => ({
+        ...prev,
+        name: profile.name || prev.name,
+        npp: profile.employeeId || prev.npp,
+        department: profile.department || prev.department,
+        employeeTitle: profile.position || prev.employeeTitle,
+        projectName: profile.project || prev.projectName,
+        projectId: profile.projectId || prev.projectId,
+        aplikasiBerdampak: profile.aplikasiBerdampak || prev.aplikasiBerdampak,
+        aipFitur: profile.aipFitur || prev.aipFitur,
+        officerName: profile.officerName || prev.officerName,
+        officerTitle: profile.officerPosition || prev.officerTitle,
+        managerName: profile.supervisorName || prev.managerName,
+        managerTitle: profile.supervisorPosition || prev.managerTitle,
+        deptHeadName: profile.approverName || prev.deptHeadName,
+        deptHeadTitle: profile.approverPosition || prev.deptHeadTitle,
+        signatureDataUrl: profile.signatureDataUrl || prev.signatureDataUrl,
+      }));
     }
     if (draft?.rows && draft.rows.length > 0) {
       setRows(draft.rows);
@@ -117,10 +141,11 @@ export default function TimesheetGenerator() {
     if (rows.length > 0) {
       const timeout = setTimeout(() => {
         saveTimesheetDraft(header, rows);
+        setTimesheetDraft(header, rows);
       }, 800);
       return () => clearTimeout(timeout);
     }
-  }, [header, rows, isLoaded]);
+  }, [header, rows, isLoaded, setTimesheetDraft]);
 
   // Regenerate rows when Month/Year changes
   const handleRegenerateMonth = useCallback(
@@ -130,13 +155,14 @@ export default function TimesheetGenerator() {
         projectId: header.projectId,
         aplikasiBerdampak: header.aplikasiBerdampak,
         aipFitur: header.aipFitur,
+        holidays,
       });
       const periodeLabel = `${MONTH_NAMES_TITLE[month - 1]} ${year}`;
       setHeader((h) => ({ ...h, month, year, periode: periodeLabel }));
       setRows(generated);
       showToast(`Kalender diperbarui ke ${periodeLabel} (${generated.length} hari)`, "info");
     },
-    [header.projectName, header.projectId, header.aplikasiBerdampak, header.aipFitur, showToast]
+    [header.projectName, header.projectId, header.aplikasiBerdampak, header.aipFitur, holidays, showToast]
   );
 
   // Load sample Adidata data
@@ -362,13 +388,30 @@ export default function TimesheetGenerator() {
     });
   }, [rows, filterMode, searchQuery]);
 
+  const recordTimesheetHistory = (hdr: TimesheetHeader, rws: TimesheetRow[]) => {
+    saveTimesheetToHistory(hdr, rws);
+    const s = summarizeTimesheet(rws);
+    const ot = rws.filter(isOvertimeRow).length;
+    const periodeLabel = `${MONTH_NAMES_TITLE[hdr.month - 1]} ${hdr.year}`;
+    addHistoryRecord({
+      kind: "timesheet",
+      title: `Timesheet ${periodeLabel}`,
+      periode: periodeLabel,
+      employeeName: hdr.name,
+      employeeId: hdr.npp,
+      summaryText: `${s.totalHours.toFixed(1)} Jam • ${s.present} Hari Masuk • ${ot} Lembur`,
+      payload: { kind: "timesheet", header: hdr, rows: rws },
+    });
+  };
+
   // Handle Timesheet Excel export
   const handleExportExcel = async () => {
     setIsExporting(true);
     try {
-      await exportTimesheetExcel({ header, rows });
+      const hdr = { ...header, signatureDataUrl: header.signatureDataUrl || profile.signatureDataUrl };
+      await exportTimesheetExcel({ header: hdr, rows });
       showToast("File Timesheet Excel (.xlsx) resmi Adidata berhasil didownload!", "success");
-      saveTimesheetToHistory(header, rows);
+      recordTimesheetHistory(hdr, rows);
     } catch (e: unknown) {
       console.error(e);
       showToast(`Gagal export Excel: ${e instanceof Error ? e.message : "Coba lagi"}`, "warning");
@@ -380,9 +423,10 @@ export default function TimesheetGenerator() {
   // Handle PDF export
   const handleExportPDF = () => {
     try {
-      exportTimesheetPDF({ header, rows });
+      const hdr = { ...header, signatureDataUrl: header.signatureDataUrl || profile.signatureDataUrl };
+      exportTimesheetPDF({ header: hdr, rows });
       showToast("Dialog cetak / PDF dibuka. Siap dicetak!", "info");
-      saveTimesheetToHistory(header, rows);
+      recordTimesheetHistory(hdr, rows);
     } catch (e: unknown) {
       console.error(e);
       showToast("Gagal memproses cetak PDF", "warning");
@@ -471,7 +515,7 @@ export default function TimesheetGenerator() {
 
   // Save to History archive
   const handleManualSaveArchive = () => {
-    saveTimesheetToHistory(header, rows);
+    recordTimesheetHistory(header, rows);
     showToast(`Timesheet periode ${header.periode} berhasil diarsipkan ke Riwayat!`, "success");
   };
 

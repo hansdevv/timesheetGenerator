@@ -1,0 +1,38 @@
+{
+  "template": "/templates/template_spl.xlsx",
+  "sheet": "Sheet3",
+  "paperSize": "A4",
+  "orientation": "portrait",
+  "fields": {
+    "employeeId": "C7",
+    "employeeName": "C8",
+    "department": "C9",
+    "position": "C10"
+  },
+  "table": {
+    "startRow": 15,
+    "maxRows": 20,
+    "columns": {
+      "no": "C",
+      "date": "D",
+      "startTime": "F",
+      "endTime": "H",
+      "totalHours": "I",
+      "tasks": "J"
+    }
+  },
+  "signatures": {
+    "employee": {
+      "nameCell": "B24",
+      "roleCell": "B25"
+    },
+    "supervisor": {
+      "nameCell": "G24",
+      "roleCell": "G25"
+    },
+    "approver": {
+      "nameCell": "K24",
+      "roleCell": "K25"
+    }
+  }
+}

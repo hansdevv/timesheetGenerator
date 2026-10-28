@@ -7,23 +7,40 @@ import {
   CalendarIcon,
   FileTextIcon,
   ArchiveIcon,
+  UserIcon,
+  UmbrellafillIcon,
   SunIcon,
   MoonIcon,
 } from "@/components/Icons";
 
 const NAV_ITEMS = [
   {
-    href: "/",
+    href: "/timesheet",
+    matchHrefs: ["/", "/timesheet"],
     label: "Timesheet",
     icon: <CalendarIcon size={15} />,
   },
   {
     href: "/spl",
-    label: "Surat Lembur",
+    matchHrefs: ["/spl"],
+    label: "SPL Lembur",
     icon: <FileTextIcon size={15} />,
   },
   {
-    href: "/history",
+    href: "/izin",
+    matchHrefs: ["/izin"],
+    label: "Surat Izin",
+    icon: <UmbrellafillIcon size={15} />,
+  },
+  {
+    href: "/profil",
+    matchHrefs: ["/profil"],
+    label: "Profil",
+    icon: <UserIcon size={15} />,
+  },
+  {
+    href: "/riwayat",
+    matchHrefs: ["/riwayat", "/history"],
     label: "Riwayat",
     icon: <ArchiveIcon size={15} />,
   },
@@ -36,8 +53,23 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <Link href="/" className="navbar-brand">
-        <div className="brand-icon">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <div
+          className="brand-icon"
+          style={{
+            background: "#dc2626",
+            boxShadow: "0 2px 6px rgba(220, 38, 38, 0.35)",
+          }}
+        >
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
             <line x1="8" y1="2" x2="8" y2="6" />
@@ -45,18 +77,27 @@ export default function Navbar() {
           </svg>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontWeight: 700, letterSpacing: "-0.02em", color: "var(--text-hi)", fontSize: "0.95rem", lineHeight: 1.2 }}>
-            TimesheetGen
+          <span
+            style={{
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "var(--text-hi)",
+              fontSize: "0.95rem",
+              lineHeight: 1.2,
+            }}
+          >
+            Adidata DocGen
           </span>
           <span style={{ fontSize: "0.68rem", color: "var(--text-lo)", fontWeight: 500 }}>
-            Adidata · Format Resmi
+            Timesheet · SPL · Permohonan Izin
           </span>
         </div>
       </Link>
 
-      <ul className="navbar-nav">
+      <ul className="navbar-nav" style={{ overflowX: "auto" }}>
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
+          const cleanPath = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+          const isActive = item.matchHrefs.includes(cleanPath);
           return (
             <li key={item.href}>
               <Link href={item.href} className={`nav-link ${isActive ? "active" : ""}`}>
@@ -69,9 +110,9 @@ export default function Navbar() {
       </ul>
 
       <div className="navbar-right">
-        <div className="autosave-badge" title="Data formulir otomatis tersimpan di browser">
+        <div className="autosave-badge" title="Draft otomatis tersimpan di IndexedDB browser">
           <span className="autosave-dot" />
-          <span>Auto-save aktif</span>
+          <span>IndexedDB Auto-save</span>
         </div>
 
         <button

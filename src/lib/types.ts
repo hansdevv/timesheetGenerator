@@ -1,4 +1,10 @@
-// Types for the Timesheet Generator
+// Types for the Timesheet, SPL & Permohonan Izin Generator
+
+import type { HolidayItem } from "@/lib/schemas";
+import { calcWorkHours, formatTimeWithSeconds, DAY_NAMES_ID, MONTH_NAMES_TITLE } from "@/lib/calc";
+import { DEFAULT_HOLIDAYS } from "@/lib/storage";
+
+export { calcWorkHours as calcHours, formatTimeWithSeconds, DAY_NAMES_ID, MONTH_NAMES_TITLE };
 
 export type AttendanceStatus = "P" | "S" | "V" | "BT" | "PM" | "X" | "H";
 
@@ -42,6 +48,7 @@ export interface TimesheetHeader {
   aplikasiBerdampak: string; // "ORMS"
   aipFitur: string; // "Implementasi ORMS"
   dateStamp: string; // "01 Oktober 2026"
+  signatureDataUrl?: string;
 }
 
 export interface SPLEntry {
@@ -51,6 +58,8 @@ export interface SPLEntry {
   endTime: string; // HH:MM or HH:MM:SS
   totalHours?: number;
   tasks: string; // multiline
+  workerName?: string;
+  workerNpp?: string;
 }
 
 export interface SPLData {
@@ -63,6 +72,7 @@ export interface SPLData {
   teamLeaderTitle: string;
   deptHeadName: string;
   deptHeadTitle: string;
+  signatureDataUrl?: string;
 }
 
 export type TimesheetData = {
@@ -85,23 +95,13 @@ export const MONTH_NAMES = [
   "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"
 ];
 
-export const MONTH_NAMES_TITLE = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-];
-
 export const MONTH_NAMES_EN = [
   "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
   "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
 ];
 
-export const DAY_NAMES_ID = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-
 /**
- * Generate all dates for a given month/year as TimesheetRow[]
- */
-/**
- * Generate all dates for a given month/year as TimesheetRow[]
+ * Generate all dates for a given month/year as TimesheetRow[], automatically marking weekends and national holidays.
  */
 export function generateMonthRows(
   month: number,
@@ -111,10 +111,13 @@ export function generateMonthRows(
     projectId?: string;
     aplikasiBerdampak?: string;
     aipFitur?: string;
+    holidays?: HolidayItem[];
   }
 ): TimesheetRow[] {
   const rows: TimesheetRow[] = [];
   const daysInMonth = new Date(year, month, 0).getDate();
+  const holidaysList = defaults?.holidays ?? DEFAULT_HOLIDAYS;
+  const holidayMap = new Map(holidaysList.map((h) => [h.date, h]));
 
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month - 1, day);
@@ -122,59 +125,35 @@ export function generateMonthRows(
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
     const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const defaultHours = isWeekend ? 0 : dayOfWeek === 5 ? 7.5 : 8.0;
+    const holidayMatch = holidayMap.get(dateStr);
+    const isHoliday = Boolean(holidayMatch);
+    const isOff = isWeekend || isHoliday;
+    const defaultHours = isOff ? 0 : dayOfWeek === 5 ? 7.5 : 8.0;
 
     rows.push({
       id: dateStr,
       date: dateStr,
       dayName: DAY_NAMES_ID[dayOfWeek],
-      startTime: isWeekend ? "" : "08:00:00",
-      endTime: isWeekend ? "" : "17:00:00",
+      startTime: isOff ? "" : "08:00:00",
+      endTime: isOff ? "" : "17:00:00",
       totalHours: defaultHours,
-      status: isWeekend ? "X" : "P",
-      activity: isWeekend ? "Weekend" : "",
-      projectName: isWeekend ? "" : (defaults?.projectName || ""),
-      projectId: isWeekend ? "" : (defaults?.projectId || ""),
-      aplikasiBerdampak: isWeekend ? "" : (defaults?.aplikasiBerdampak || ""),
-      aipFitur: isWeekend ? "" : (defaults?.aipFitur || ""),
+      status: isWeekend ? "X" : isHoliday ? "H" : "P",
+      activity: isWeekend
+        ? "Weekend"
+        : isHoliday
+          ? holidayMatch?.name || "Hari Libur Nasional"
+          : "",
+      projectName: isOff ? "" : defaults?.projectName || "",
+      projectId: isOff ? "" : defaults?.projectId || "",
+      aplikasiBerdampak: isOff ? "" : defaults?.aplikasiBerdampak || "",
+      aipFitur: isOff ? "" : defaults?.aipFitur || "",
       isWeekend,
-      isHoliday: false,
+      isHoliday,
+      holidayName: holidayMatch?.name,
     });
   }
 
   return rows;
-}
-
-/**
- * Format a time string ensuring it has seconds (HH:MM:SS)
- */
-export function formatTimeWithSeconds(timeStr?: string): string {
-  if (!timeStr) return "";
-  const trimmed = timeStr.trim();
-  if (!trimmed) return "";
-  const parts = trimmed.split(":");
-  const hh = String(Number(parts[0]) || 0).padStart(2, "0");
-  const mm = String(Number(parts[1]) || 0).padStart(2, "0");
-  const ss = String(Number(parts[2]) || 0).padStart(2, "0");
-  return `${hh}:${mm}:${ss}`;
-}
-
-/**
- * Calculate total hours from start/end time strings with lunch break deduction
- * Supports both HH:MM and HH:MM:SS
- */
-export function calcHours(start: string, end: string, dayOfWeek?: number): number {
-  if (!start || !end) return 0;
-  const [sh, sm, ss] = start.split(":").map(Number);
-  const [eh, em, es] = end.split(":").map(Number);
-  const startSec = (sh || 0) * 3600 + (sm || 0) * 60 + (ss || 0);
-  const endSec = (eh || 0) * 3600 + (em || 0) * 60 + (es || 0);
-  const diffHours = (endSec - startSec) / 3600;
-  if (diffHours <= 0) return 0;
-  
-  // Deduct lunch break (1.5h for Friday, 1.0h for others) if duration >= 5h
-  const breakHours = diffHours >= 5 ? (dayOfWeek === 5 ? 1.5 : 1.0) : 0;
-  return Math.max(0, Math.round((diffHours - breakHours) * 100) / 100);
 }
 
 /**
@@ -194,12 +173,10 @@ export function summarizeTimesheet(rows: TimesheetRow[]) {
   };
 
   for (const row of rows) {
-    // Weekend non-working days should NOT be counted as notWorking (X)
     if (row.isWeekend && row.status !== "P") {
       continue;
     }
-    // Holiday non-working days
-    if (row.isHoliday || row.status === "H") {
+    if ((row.isHoliday || row.status === "H") && row.status !== "P") {
       summary.holiday++;
       continue;
     }
@@ -244,12 +221,7 @@ export const TASK_PRESETS = [
 ];
 
 /**
- * Helper to determine if a timesheet row is an overtime (lembur) row.
- * Covers both:
- * 1. Explicitly marked overtime (isOvertime = true)
- * 2. Weekend or holiday working days (isWeekend/isHoliday and status P)
- * 3. Weekday overtime where totalHours exceeds standard daily working hours
- *    (Friday standard: 7.5h, other weekdays: 8.0h)
+ * Determine if a timesheet row is an overtime (lembur) row.
  */
 export function isOvertimeRow(row: TimesheetRow): boolean {
   if (row.isOvertime) return true;
@@ -280,7 +252,7 @@ export function formatTimesheetSummaryText(header: TimesheetHeader, rows: Timesh
 Generated via TimesheetGen Adidata`;
 }
 
-// LocalStorage Keys
+// LocalStorage Keys (kept for backwards compatibility with existing drafts)
 export const STORAGE_KEY_DRAFT = "timesheet_current_draft_v1";
 export const STORAGE_KEY_HISTORY = "timesheet_history_records_v1";
 
@@ -322,8 +294,9 @@ export function saveTimesheetToHistory(header: TimesheetHeader, rows: TimesheetR
   if (typeof window !== "undefined") {
     try {
       const existing = loadTimesheetHistory();
-      // Replace existing with same month/year or prepend
-      const filtered = existing.filter((item) => !(item.header.month === header.month && item.header.year === header.year && item.header.npp === header.npp));
+      const filtered = existing.filter(
+        (item) => !(item.header.month === header.month && item.header.year === header.year && item.header.npp === header.npp)
+      );
       localStorage.setItem(STORAGE_KEY_HISTORY, JSON.stringify([record, ...filtered]));
     } catch (err) {
       console.error("Gagal simpan riwayat ke localStorage", err);

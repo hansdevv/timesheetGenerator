@@ -1,0 +1,41 @@
+{
+  "template": "/templates/template_timesheet.xlsx",
+  "sheet": "Sheet1",
+  "paperSize": "A4",
+  "orientation": "landscape",
+  "fields": {
+    "projectName": "D2",
+    "department": "D3",
+    "employeeName": "D4",
+    "employeeId": "D5",
+    "period": "D6"
+  },
+  "table": {
+    "startRow": 10,
+    "maxRows": 31,
+    "columns": {
+      "date": "B",
+      "timeIn": "C",
+      "timeOut": "D",
+      "totalHours": "E",
+      "present": "F",
+      "sick": "G",
+      "businessTrip": "H",
+      "permit": "I",
+      "vacation": "J",
+      "notWorking": "K",
+      "activity": "L",
+      "projectName": "O",
+      "projectId": "P",
+      "aplikasiBerdampak": "Q",
+      "aipFitur": "R"
+    }
+  },
+  "signatures": {
+    "employee": { "col": "B", "span": "B:D" },
+    "officer": { "col": "E", "span": "E:H" },
+    "supervisor": { "col": "I", "span": "I:M" },
+    "approver": { "col": "N", "span": "N:N" }
+  }
+}
+

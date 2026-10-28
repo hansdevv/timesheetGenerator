@@ -1,0 +1,28 @@
+{
+  "template": "/templates/template_izin.xlsx",
+  "sheet": "Sheet1",
+  "paperSize": "A4",
+  "orientation": "portrait",
+  "fields": {
+    "cityDate": "L3",
+    "employeeName": "E7",
+    "department": "M7",
+    "checkPulangAwal": "C12",
+    "checkDatangTerlambat": "G12",
+    "checkCuti": "L12",
+    "checkLainLain": "O12",
+    "labelLainLain": "P12",
+    "day": "C14",
+    "date": "H14",
+    "time": "O14",
+    "reason": "C16",
+    "notes": "C18",
+    "notesLine2": "C19"
+  },
+  "signatures": {
+    "applicant": { "nameCell": "C25", "boxStart": "C22" },
+    "supervisor": { "roleCell": "H22", "nameCell": "H25" },
+    "approver": { "roleCell": "N22", "nameCell": "N25" }
+  }
+}
+

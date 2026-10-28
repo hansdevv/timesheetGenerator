@@ -22,17 +22,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const currentAttr = document.documentElement.getAttribute("data-theme") as Theme | null;
     if (currentAttr === "light" || currentAttr === "dark") {
-      setTheme(currentAttr);
       return;
     }
     const saved = localStorage.getItem("ts-theme") as Theme | null;
     if (saved === "light" || saved === "dark") {
-      setTheme(saved);
       document.documentElement.setAttribute("data-theme", saved);
       return;
     }
     if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-      setTheme("light");
       document.documentElement.setAttribute("data-theme", "light");
     }
   }, []);
