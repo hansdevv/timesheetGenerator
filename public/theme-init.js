@@ -19,3 +19,4 @@
     // Fail silently in restricted environments
   }
 })();
+

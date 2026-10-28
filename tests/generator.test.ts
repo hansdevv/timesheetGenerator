@@ -177,3 +177,39 @@ describe("Theme & Visual Mode Resolution", () => {
   });
 });
 
+describe("Progressive Web App (PWA) Fidelity", () => {
+  it("provides valid web app manifest with standalone display, icons, and shortcuts", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const manifestPath = path.resolve(__dirname, "../public/manifest.webmanifest");
+    expect(fs.existsSync(manifestPath)).toBe(true);
+
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+    expect(manifest.name).toContain("Adidata DocGen");
+    expect(manifest.short_name).toBe("Adidata DocGen");
+    expect(manifest.display).toBe("standalone");
+    expect(manifest.start_url).toBe("./");
+    expect(manifest.theme_color).toBe("#dc2626");
+    expect(manifest.icons.length).toBeGreaterThanOrEqual(4);
+
+    // Verify all referenced icons physically exist in public directory
+    for (const icon of manifest.icons) {
+      const iconPath = path.resolve(__dirname, "../public", icon.src);
+      expect(fs.existsSync(iconPath)).toBe(true);
+    }
+  });
+
+  it("verifies service worker script exists and pre-caches essential document templates", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const swPath = path.resolve(__dirname, "../public/sw.js");
+    expect(fs.existsSync(swPath)).toBe(true);
+
+    const swContent = fs.readFileSync(swPath, "utf-8");
+    expect(swContent).toContain("template_timesheet.xlsx");
+    expect(swContent).toContain("template_spl.xlsx");
+    expect(swContent).toContain("template_izin.xlsx");
+    expect(swContent).toContain("holidays-2026.json");
+  });
+});
+

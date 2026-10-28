@@ -6,6 +6,7 @@ import type { Profile, HolidayItem } from "@/lib/schemas";
 import { ProfileSchema } from "@/lib/schemas";
 import { useAppStore, DEFAULT_PROFILE } from "@/lib/storage";
 import { useTheme, type Theme } from "@/lib/theme-context";
+import { usePwa } from "@/lib/pwa-context";
 import {
   UserIcon,
   BriefcaseIcon,
@@ -35,6 +36,7 @@ export default function ProfilPage() {
   } = useAppStore();
 
   const { theme, resolvedTheme, setTheme, mounted } = useTheme();
+  const { isInstallable, isInstalled, isOffline, promptInstall } = usePwa();
 
   const [form, setForm] = useState<Profile>(DEFAULT_PROFILE);
   const [newHolidayDate, setNewHolidayDate] = useState("");
@@ -724,6 +726,124 @@ export default function ProfilPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* PWA & Offline Support */}
+        <div className="card" style={{ marginBottom: "1.25rem" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">
+                <div className="card-icon" style={{ background: "var(--red-dim)", borderColor: "var(--red-dim-border)", color: "var(--red)" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                    <line x1="12" y1="18" x2="12.01" y2="18" />
+                  </svg>
+                </div>
+                <span>Aplikasi Mandiri (PWA) &amp; Status Offline</span>
+              </div>
+              <div className="card-subtitle">
+                Aplikasi Adidata DocGen dapat dipasang langsung ke komputer atau HP Anda dan dapat digunakan 100% tanpa koneksi internet.
+              </div>
+            </div>
+            {isInstallable && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={async () => {
+                  const success = await promptInstall();
+                  if (success) {
+                    showToast("Aplikasi berhasil dipasang ke perangkat Anda!", "success");
+                  }
+                }}
+              >
+                <DownloadIcon size={14} />
+                <span>Pasang Aplikasi Sekarang</span>
+              </button>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+              gap: "10px",
+              marginBottom: "1rem",
+            }}
+          >
+            <div
+              style={{
+                background: "var(--bg-card-subtle)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                padding: "0.85rem 1rem",
+              }}
+            >
+              <div style={{ fontSize: "0.72rem", color: "var(--text-lo)", fontWeight: 600 }}>STATUS INSTALASI</div>
+              <div style={{ fontSize: "0.92rem", fontWeight: 700, color: "var(--text-hi)", marginTop: "4px" }}>
+                {isInstalled ? "Terpasang (Aplikasi Mandiri)" : "Berjalan di Browser Web"}
+              </div>
+              <div style={{ fontSize: "0.74rem", color: "var(--text-mid)", marginTop: "2px" }}>
+                {isInstalled ? "Aplikasi berjalan terisolasi di window mandiri." : "Bisa dipasang ke Desktop / Homescreen HP."}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "var(--bg-card-subtle)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                padding: "0.85rem 1rem",
+              }}
+            >
+              <div style={{ fontSize: "0.72rem", color: "var(--text-lo)", fontWeight: 600 }}>STATUS KONEKSI</div>
+              <div style={{ fontSize: "0.92rem", fontWeight: 700, color: isOffline ? "var(--amber-text)" : "var(--green-text)", marginTop: "4px" }}>
+                {isOffline ? "Mode Offline Aktif" : "Online Terhubung"}
+              </div>
+              <div style={{ fontSize: "0.74rem", color: "var(--text-mid)", marginTop: "2px" }}>
+                {isOffline ? "Semua fitur ekspor & generator tetap bekerja." : "Siap menerima pembaruan versi terbaru."}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "var(--bg-card-subtle)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                padding: "0.85rem 1rem",
+              }}
+            >
+              <div style={{ fontSize: "0.72rem", color: "var(--text-lo)", fontWeight: 600 }}>CACHE TEMPLATE &amp; DOKUMEN</div>
+              <div style={{ fontSize: "0.92rem", fontWeight: 700, color: "var(--accent-bright)", marginTop: "4px" }}>
+                Aktif (Service Worker)
+              </div>
+              <div style={{ fontSize: "0.74rem", color: "var(--text-mid)", marginTop: "2px" }}>
+                Template Excel, data hari libur 2026, dan aset tersimpan lokal.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={async () => {
+                if ("serviceWorker" in navigator) {
+                  const reg = await navigator.serviceWorker.getRegistration();
+                  if (reg) {
+                    await reg.update();
+                    showToast("Pemeriksaan pembaruan cache offline selesai!", "success");
+                  } else {
+                    showToast("Service Worker belum terdaftar di sesi ini", "info");
+                  }
+                } else {
+                  showToast("Service Worker tidak didukung di browser ini", "warning");
+                }
+              }}
+            >
+              <RefreshIcon size={13} />
+              <span>Periksa Pembaruan Cache Offline</span>
+            </button>
           </div>
         </div>
 

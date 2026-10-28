@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/lib/theme-context";
+import { usePwa } from "@/lib/pwa-context";
 import {
   CalendarIcon,
   FileTextIcon,
@@ -11,6 +12,7 @@ import {
   UmbrellafillIcon,
   SunIcon,
   MoonIcon,
+  DownloadIcon,
 } from "@/components/Icons";
 
 const NAV_ITEMS = [
@@ -49,6 +51,7 @@ const NAV_ITEMS = [
 export default function Navbar() {
   const pathname = usePathname();
   const { resolvedTheme, toggle, mounted } = useTheme();
+  const { isInstallable, isOffline, promptInstall } = usePwa();
 
   return (
     <nav className="navbar">
@@ -110,6 +113,40 @@ export default function Navbar() {
       </ul>
 
       <div className="navbar-right">
+        {isOffline && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              fontSize: "0.72rem",
+              fontWeight: 600,
+              color: "var(--amber-text)",
+              background: "var(--amber-dim)",
+              border: "1px solid var(--amber-dim-border)",
+              padding: "3px 8px",
+              borderRadius: "9999px",
+            }}
+            title="Anda sedang offline. Semua generator dokumen tetap berfungsi normal berkat cache offline PWA!"
+          >
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--amber)" }} />
+            <span>Offline PWA</span>
+          </div>
+        )}
+
+        {isInstallable && (
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={promptInstall}
+            style={{ padding: "4px 10px", fontSize: "0.78rem" }}
+            title="Pasang aplikasi Adidata DocGen ke perangkat (Desktop / Mobile)"
+          >
+            <DownloadIcon size={13} />
+            <span>Pasang App</span>
+          </button>
+        )}
+
         <div className="autosave-badge" title="Draft otomatis tersimpan di IndexedDB browser">
           <span className="autosave-dot" />
           <span>IndexedDB Auto-save</span>

@@ -107,6 +107,7 @@ Pengguna utama v1: individu (satu profil per browser).
 | FR-12 | Tarik data lembur dari timesheet ke SPL | Should |
 | FR-13 | Tanda tangan gambar pada dokumen | Could |
 | FR-14 | Dark / Light Mode (Tema Tampilan) dengan dukungan Light, Dark, dan System (Otomatis) | Must |
+| FR-15 | Progressive Web App (PWA) dengan kapabilitas 100% offline & installable | Must |
 
 ### 6.1 Spesifikasi Fitur Dark / Light Mode (FR-14)
 
@@ -131,6 +132,32 @@ Sistem tema tampilan dirancang untuk kenyamanan visual pengguna dalam berbagai k
    - Kontras rasio memenuhi standar WCAG 2.1 AA di seluruh komponen: teks, form input, tabel timesheet, badge status, dan dialog modal.
    - Transisi warna halus (`0.2s ease`) untuk perpindahan mode yang mulus.
 
+### 6.2 Spesifikasi Fitur Progressive Web App (PWA) & Offline Mode (FR-15)
+
+Aplikasi dilengkapi kapabilitas PWA penuh agar dapat dipasang (*installable*) sebagai aplikasi mandiri (*standalone*) pada Desktop (Windows/macOS/Linux) maupun Mobile (Android/iOS) dan dapat bekerja **100% offline**:
+
+1. **Web App Manifest (`public/manifest.webmanifest`):**
+   - Nama aplikasi: `Adidata DocGen - Timesheet, SPL & Izin`.
+   - Nama pendek: `Adidata DocGen`.
+   - Display mode: `standalone` (tampil tanpa bilah navigasi peramban).
+   - Warna tema: Crimson Adidata (`#dc2626`), warna latar belakang splash: Obsidian (`#090d16`).
+   - Ikon PWA lengkap: 192x192 px, 512x512 px, maskable adaptive icon untuk Android launcher, dan `apple-touch-icon.png` untuk iOS Safari.
+   - App Shortcuts: Akses cepat sekali sentuh ke modul *Timesheet Bulanan*, *SPL Lembur*, dan *Surat Izin*.
+
+2. **Service Worker & Strategi Caching Offline (`public/sw.js`):**
+   - **Pre-caching Template & Aset Kritis:** Menyimpan otomatis berkas template Excel resmi (`template_timesheet.xlsx`, `template_spl.xlsx`, `template_izin.xlsx`), JSON daftar libur nasional (`holidays-2026.json`), logo perusahaan, dan skrip aplikasi ke dalam Cache Storage (`adidata-docgen-v1.0.0`).
+   - **Stale-While-Revalidate:** Aset statis dan berkas script disajikan instan dari cache lokal, lalu diperbarui di latar belakang jika terhubung ke internet.
+   - **Network-First dengan Offline Fallback:** Permintaan navigasi halaman HTML memprioritaskan jaringan saat online dan otomatis jatuh ke cache lokal saat offline.
+   - **Dynamic Base-Path Scope:** Mengambil scope URL secara dinamis dari `self.registration.scope` sehingga bekerja identik di localhost (`/`) maupun subpath GitHub Pages (`/timesheetGenerator/`).
+
+3. **Integrasi Antarmuka Pengguna (UI & UX):**
+   - **Tombol Pasang Aplikasi (Install Prompt):** Muncul otomatis di Navbar saat peramban mendukung instalasi (`beforeinstallprompt`).
+   - **Indikator Status Offline:** Badge *Offline PWA* muncul di Navbar saat koneksi terputus, memberi kepastian kepada pengguna bahwa dokumen tetap aman dan dapat diekspor.
+   - **Panel Manajemen PWA di Profil (`/profil`):** Menampilkan status instalasi, status jaringan online/offline, status cache dokumen, serta tombol manual untuk memeriksa pembaruan cache offline via Service Worker.
+
+4. **Kemandirian Offline 100%:**
+   - Karena perhitungan jam kerja, lembur, hari kerja efektif, serta kompilasi biner Excel (.xlsx) dan PDF dilakukan 100% *client-side* menggunakan JavaScript dan Web APIs, seluruh dokumen administrasi dapat dibuat, disimpan ke IndexedDB, dan diunduh meskipun perangkat pengguna berada dalam mode pesawat (*airplane mode*) atau tanpa akses jaringan internet.
+
 ## 7. Non-Functional Requirements
 
 - **Privasi:** tidak ada request jaringan yang membawa data pengguna; semua pemrosesan di browser.
@@ -152,6 +179,7 @@ Sistem tema tampilan dirancang untuk kenyamanan visual pengguna dalam berbagai k
 | Tanggal | date-fns | Locale `id` |
 | Ekspor Excel | ExcelJS | Memuat template .xlsx, mengisi sel, mempertahankan style |
 | Ekspor PDF | `@react-pdf/renderer` | Layout dibangun ulang agar identik dengan template |
+| PWA & Offline | Service Worker + Web App Manifest | Caching 100% offline (template .xlsx, data libur, font, aset) |
 | Pengujian | Vitest, Playwright | |
 | CI/CD | GitHub Actions | Build dan deploy ke Pages |
 
@@ -211,7 +239,10 @@ timesheet-generator/
 │  │  ├─ timesheet.xlsx
 │  │  ├─ spl.xlsx
 │  │  └─ izin.xlsx
+│  ├─ icons/                    # Ikon PWA (192px, 512px, maskable, apple-touch)
 │  ├─ data/holidays-2026.json
+│  ├─ manifest.webmanifest      # Web App Manifest PWA
+│  ├─ sw.js                     # Service Worker PWA (offline cache)
 │  └─ theme-init.js             # Skrip inisialisasi synchronous anti-FOUC
 ├─ src/
 │  ├─ app/
@@ -229,6 +260,7 @@ timesheet-generator/
 │  ├─ lib/
 │  │  ├─ schemas/            # Zod schema per dokumen
 │  │  ├─ theme-context.tsx   # Provider context tema (Light, Dark, System)
+│  │  ├─ pwa-context.tsx     # Provider context PWA & status offline
 │  │  ├─ excel/              # ExcelJS: loader, filler, mapping
 │  │  ├─ pdf/                # komponen @react-pdf per dokumen
 │  │  ├─ calc/               # jam kerja, lembur, hari kerja

@@ -1,0 +1,61 @@
+{
+  "name": "Adidata DocGen - Timesheet, SPL & Izin",
+  "short_name": "Adidata DocGen",
+  "description": "Generator dokumen administrasi kerja resmi Adidata (Timesheet Bulanan, SPL Lembur, dan Permohonan Izin). Bekerja 100% offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090d16",
+  "theme_color": "#dc2626",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Timesheet Bulanan",
+      "short_name": "Timesheet",
+      "description": "Buat atau kelola timesheet bulanan Adidata",
+      "url": "./timesheet/",
+      "icons": [{ "src": "icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Surat Perintah Lembur",
+      "short_name": "SPL Lembur",
+      "description": "Buat atau cetak SPL lembur resmi",
+      "url": "./spl/",
+      "icons": [{ "src": "icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Permohonan Izin",
+      "short_name": "Surat Izin",
+      "description": "Buat surat permohonan izin",
+      "url": "./izin/",
+      "icons": [{ "src": "icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
