@@ -958,28 +958,244 @@ body {
   }
 }
 
-/* ─── Responsive ──────────────────────────────────────────── */
+/* ─── Responsive & Mobile App Experience ─────────────────── */
+.bottom-nav {
+  display: none;
+}
+
+.brand-subtitle {
+  display: block;
+}
+
+.autosave-text {
+  display: inline;
+}
+
+.mobile-scroll-hint {
+  display: none;
+}
+
+.app-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-hi);
+  box-shadow: var(--shadow-elevated);
+  font-weight: 500;
+  font-size: 0.85rem;
+  max-width: 460px;
+}
+
 @media (max-width: 768px) {
   .navbar {
-    padding: 0 1rem;
+    padding: 0 0.85rem;
+    height: 54px;
   }
   .navbar-nav {
     display: none;
   }
   .main-content {
-    padding: 0 1rem 3rem;
+    padding: 0 0.85rem calc(72px + env(safe-area-inset-bottom, 0px));
   }
   .page-header {
-    padding: 1.25rem 1rem 1rem;
+    padding: 1.15rem 0.85rem 0.85rem;
   }
   .card {
-    padding: 1rem;
+    padding: 0.95rem;
   }
   .form-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .stat-card {
+    padding: 0.75rem 0.8rem;
+  }
+  .stat-value {
+    font-size: 1.35rem;
+  }
+
+  /* Sticky Columns for Timesheet Table */
+  .mobile-scroll-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-mid);
+    background: var(--bg-card-subtle);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .timesheet-table th,
+  .timesheet-table td {
+    background: var(--bg-card);
+  }
+
+  .timesheet-table th.col-num,
+  .timesheet-table td.col-num {
+    position: sticky;
+    left: 0;
+    z-index: 4;
+    background: var(--bg-card);
+  }
+
+  .timesheet-table th.col-date,
+  .timesheet-table td.col-date {
+    position: sticky;
+    left: 32px;
+    z-index: 4;
+    background: var(--bg-card);
+    box-shadow: 3px 0 6px -1px rgba(0, 0, 0, 0.15);
+  }
+
+  .timesheet-table tr.row-weekend td.col-num,
+  .timesheet-table tr.row-weekend td.col-date {
+    background: var(--row-weekend);
+  }
+
+  .timesheet-table tr.row-lembur td.col-num,
+  .timesheet-table tr.row-lembur td.col-date {
+    background: var(--row-lembur);
+  }
+
+  .timesheet-table tr.row-holiday td.col-num,
+  .timesheet-table tr.row-holiday td.col-date {
+    background: var(--row-holiday);
+  }
+
+  .timesheet-table thead th.col-num,
+  .timesheet-table thead th.col-date {
+    z-index: 14;
+    background: var(--table-th-bg);
+  }
+
+  /* Bottom Navigation Bar */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  [data-theme="dark"] .bottom-nav {
+    background: rgba(15, 21, 35, 0.94);
+    backdrop-filter: blur(16px);
+  }
+
+  [data-theme="light"] .bottom-nav {
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 4px 6px;
+    flex: 1;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--text-mid);
+    font-size: 0.68rem;
+    font-weight: 500;
+    border-radius: var(--radius-xs);
+    transition: all 0.14s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bottom-nav-item:hover {
+    color: var(--text-hi);
+  }
+
+  .bottom-nav-item.active {
+    color: var(--accent-bright);
+    font-weight: 700;
+  }
+
+  .bottom-nav-item.active .bottom-nav-icon {
+    background: var(--accent-dim);
+    border-radius: 9999px;
+    padding: 3px 12px;
+  }
+
+  .bottom-nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    transition: all 0.15s ease;
+  }
+
+  .bottom-nav-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Responsive Toasts on Mobile */
+  .app-toast {
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+    left: 12px;
+    max-width: calc(100% - 24px);
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-subtitle {
+    display: none;
+  }
+  .autosave-text {
+    display: none;
+  }
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-pills {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 0 0.65rem calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+  .page-header {
+    padding: 1rem 0.65rem 0.65rem;
+  }
+  .card {
+    padding: 0.85rem;
+  }
+  .stepper-item {
+    padding: 6px 10px;
+    font-size: 0.78rem;
   }
 }
 

@@ -524,19 +524,8 @@ export default function TimesheetGenerator() {
       {/* Toast Notification */}
       {toastMsg && (
         <div
+          className="app-toast animate-fade-in"
           style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 16px",
-            borderRadius: "var(--radius-sm)",
-            background: "var(--bg-card)",
-            color: "var(--text-hi)",
-            boxShadow: "var(--shadow-elevated)",
             border: `1px solid ${
               toastMsg.type === "success"
                 ? "var(--green)"
@@ -544,11 +533,7 @@ export default function TimesheetGenerator() {
                 ? "var(--amber)"
                 : "var(--accent)"
             }`,
-            fontWeight: 500,
-            fontSize: "0.85rem",
-            maxWidth: "460px",
           }}
-          className="animate-fade-in"
         >
           <span style={{ color: toastMsg.type === "success" ? "var(--green)" : toastMsg.type === "warning" ? "var(--amber)" : "var(--accent)" }}>
             {toastMsg.type === "success" ? <CheckCircleIcon size={16} /> : <AlertCircleIcon size={16} />}
@@ -1106,6 +1091,9 @@ export default function TimesheetGenerator() {
 
             {/* Main Interactive Table */}
             <div className="timesheet-table-wrapper">
+              <div className="mobile-scroll-hint">
+                <span>👈 Geser tabel ke samping untuk rincian jam, remark &amp; lembur 👉</span>
+              </div>
               <table className="timesheet-table">
                 <thead>
                   <tr>

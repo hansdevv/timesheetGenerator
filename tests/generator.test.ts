@@ -213,3 +213,21 @@ describe("Progressive Web App (PWA) Fidelity", () => {
   });
 });
 
+describe("Responsive Design & Mobile App Experience", () => {
+  it("verifies responsive CSS contains bottom navigation, sticky table columns, and mobile media queries", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+    const cssPath = path.resolve(__dirname, "../src/app/globals.css");
+    expect(fs.existsSync(cssPath)).toBe(true);
+
+    const cssContent = fs.readFileSync(cssPath, "utf-8");
+    expect(cssContent).toContain(".bottom-nav");
+    expect(cssContent).toContain("@media (max-width: 768px)");
+    expect(cssContent).toContain("@media (max-width: 640px)");
+    expect(cssContent).toContain("@media (max-width: 480px)");
+    expect(cssContent).toContain(".mobile-scroll-hint");
+    expect(cssContent).toContain("position: sticky");
+    expect(cssContent).toContain(".app-toast");
+  });
+});
+

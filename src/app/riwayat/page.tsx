@@ -206,19 +206,8 @@ export default function RiwayatPage() {
 
       {toastMsg && (
         <div
+          className="app-toast"
           style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 16px",
-            borderRadius: "var(--radius-sm)",
-            background: "var(--bg-card)",
-            color: "var(--text-hi)",
-            boxShadow: "var(--shadow-elevated)",
             border: `1px solid ${
               toastMsg.type === "success"
                 ? "var(--green)"
@@ -226,9 +215,6 @@ export default function RiwayatPage() {
                   ? "var(--amber)"
                   : "var(--accent)"
             }`,
-            fontWeight: 500,
-            fontSize: "0.85rem",
-            maxWidth: "460px",
           }}
         >
           <span
@@ -352,7 +338,7 @@ export default function RiwayatPage() {
             </div>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
             {filteredList.map((rec) => {
               const badge = kindBadge(rec.kind);
               const formattedDate = new Date(rec.savedAt).toLocaleDateString("id-ID", {

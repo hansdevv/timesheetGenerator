@@ -108,6 +108,7 @@ Pengguna utama v1: individu (satu profil per browser).
 | FR-13 | Tanda tangan gambar pada dokumen | Could |
 | FR-14 | Dark / Light Mode (Tema Tampilan) dengan dukungan Light, Dark, dan System (Otomatis) | Must |
 | FR-15 | Progressive Web App (PWA) dengan kapabilitas 100% offline & installable | Must |
+| FR-16 | Tampilan Responsif Multidevice (Mobile 360px+, Tablet, & Desktop) | Must |
 
 ### 6.1 Spesifikasi Fitur Dark / Light Mode (FR-14)
 
@@ -157,6 +158,27 @@ Aplikasi dilengkapi kapabilitas PWA penuh agar dapat dipasang (*installable*) se
 
 4. **Kemandirian Offline 100%:**
    - Karena perhitungan jam kerja, lembur, hari kerja efektif, serta kompilasi biner Excel (.xlsx) dan PDF dilakukan 100% *client-side* menggunakan JavaScript dan Web APIs, seluruh dokumen administrasi dapat dibuat, disimpan ke IndexedDB, dan diunduh meskipun perangkat pengguna berada dalam mode pesawat (*airplane mode*) atau tanpa akses jaringan internet.
+
+### 6.3 Spesifikasi Desain Responsif & Multidevice (FR-16)
+
+Antarmuka web dirancang menyeluruh agar adaptif, ergonomis, dan fungsional di seluruh kelas perangkat (ponsel cerdas mulai 360 px, tablet iPad/Android, hingga monitor desktop lebar):
+
+1. **Sistem Navigasi Adaptif:**
+   - **Desktop & Laptop (≥ 769 px):** Top Navigation Bar horizontal dengan tautan menu halaman, status auto-save draft, tombol pasang aplikasi PWA, dan pengalih tema visual.
+   - **Mobile & Tablet (≤ 768 px):** Mengadopsi standar aplikasi mobile modern berupa *Bottom Navigation Bar* tetap (*sticky bottom navigation*) dengan 5 menu utama (Timesheet, SPL Lembur, Surat Izin, Profil, Riwayat). Touch target dirancang dengan tinggi nyaman (min. 44 px) dan menghormati *safe-area-inset-bottom* (notch/gesture bar iOS & Android).
+   - **Header Top Mobile:** Subtitle brand disembunyikan otomatis pada lebar `< 640 px`, dan badge autosave diringkas menjadi lampu indikator dot hijau agar tidak terjadi pemotongan layout horizontal pada layar sempit 360 px.
+
+2. **Spreadsheet Editor Responsif:**
+   - **Sticky Columns Freeze:** Kolom nomor baris (`#`) dan kolom tanggal (`col-date`) berstatus `position: sticky` di sisi kiri saat pengguna menggulir (*swipe*) tabel ke kanan pada layar sentuh. Ini menjaga konteks baris dan tanggal selalu terlihat saat pengguna memasukkan jam lembur atau deskripsi aktivitas.
+   - **Mobile Scroll Indicator:** Muncul panduan visual interaktif (`.mobile-scroll-hint`) di bagian atas tabel pada layar sentuh untuk memberi petunjuk arah geser tabel.
+   - **Touch-Friendly Controls:** Input form, tombol waktu, dan selector dirancang dengan ukuran ramah sentuhan, padding proporsional, dan penyesuaian font agar tidak memicu auto-zoom browser iOS/Android.
+
+3. **Pratinjau Dokumen Kertas (Paper Sheet Preview):**
+   - Lembar pratinjau cetak (SPL dan Permohonan Izin) diisolasi dalam kontainer geser horizontal independen (`overflow-x: auto`) dengan border halus, shadow pembatas, serta tombol sembunyikan/tampilkan untuk menghemat ruang kerja pengguna mobile.
+
+4. **Komponen Notifikasi & Dialog Adaptif:**
+   - Toast notifikasi melayang otomatis menyesuaikan posisinya di atas bilah navigasi bawah (`bottom: calc(70px + safe-area)`) pada layar ponsel, dan melebar proporsional (`width: calc(100% - 24px)`) agar tidak terpotong tepi layar.
+   - Dialog modal menyesuaikan margin layar dan memiliki area scroll internal mandiri (`max-height: 90vh`).
 
 ## 7. Non-Functional Requirements
 

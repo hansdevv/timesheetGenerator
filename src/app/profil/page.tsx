@@ -136,19 +136,8 @@ export default function ProfilPage() {
 
       {toastMsg && (
         <div
+          className="app-toast"
           style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 16px",
-            borderRadius: "var(--radius-sm)",
-            background: "var(--bg-card)",
-            color: "var(--text-hi)",
-            boxShadow: "var(--shadow-elevated)",
             border: `1px solid ${
               toastMsg.type === "success"
                 ? "var(--green)"
@@ -156,9 +145,6 @@ export default function ProfilPage() {
                   ? "var(--amber)"
                   : "var(--accent)"
             }`,
-            fontWeight: 500,
-            fontSize: "0.85rem",
-            maxWidth: "460px",
           }}
         >
           <span

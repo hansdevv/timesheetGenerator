@@ -251,19 +251,8 @@ export default function SPLPage() {
 
       {toastMsg && (
         <div
+          className="app-toast"
           style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 16px",
-            borderRadius: "var(--radius-sm)",
-            background: "var(--bg-card)",
-            color: "var(--text-hi)",
-            boxShadow: "var(--shadow-elevated)",
             border: `1px solid ${
               toastMsg.type === "success"
                 ? "var(--green)"
@@ -271,9 +260,6 @@ export default function SPLPage() {
                   ? "var(--amber)"
                   : "var(--accent)"
             }`,
-            fontWeight: 500,
-            fontSize: "0.85rem",
-            maxWidth: "460px",
           }}
         >
           <span
@@ -627,6 +613,9 @@ export default function SPLPage() {
 
           {showPreview && (
             <div style={{ overflowX: "auto", padding: "8px 0" }}>
+              <div className="mobile-scroll-hint" style={{ marginBottom: "8px" }}>
+                <span>👈 Geser untuk melihat pratinjau dokumen penuh 👉</span>
+              </div>
               <div
                 style={{
                   minWidth: "660px",

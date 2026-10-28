@@ -54,7 +54,8 @@ export default function Navbar() {
   const { isInstallable, isOffline, promptInstall } = usePwa();
 
   return (
-    <nav className="navbar">
+    <>
+      <nav className="navbar">
       <Link href="/" className="navbar-brand">
         <div
           className="brand-icon"
@@ -91,7 +92,7 @@ export default function Navbar() {
           >
             Adidata DocGen
           </span>
-          <span style={{ fontSize: "0.68rem", color: "var(--text-lo)", fontWeight: 500 }}>
+          <span style={{ fontSize: "0.68rem", color: "var(--text-lo)", fontWeight: 500 }} className="brand-subtitle">
             Timesheet · SPL · Permohonan Izin
           </span>
         </div>
@@ -149,7 +150,7 @@ export default function Navbar() {
 
         <div className="autosave-badge" title="Draft otomatis tersimpan di IndexedDB browser">
           <span className="autosave-dot" />
-          <span>IndexedDB Auto-save</span>
+          <span className="autosave-text">IndexedDB Auto-save</span>
         </div>
 
         <button
@@ -181,5 +182,24 @@ export default function Navbar() {
         </button>
       </div>
     </nav>
+
+    {/* Mobile Bottom Navigation Bar (< 768px) */}
+    <nav className="bottom-nav" aria-label="Navigasi Bawah">
+      {NAV_ITEMS.map((item) => {
+        const cleanPath = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+        const isActive = item.matchHrefs.includes(cleanPath);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`bottom-nav-item ${isActive ? "active" : ""}`}
+          >
+            <span className="bottom-nav-icon">{item.icon}</span>
+            <span className="bottom-nav-label">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+    </>
   );
 }
