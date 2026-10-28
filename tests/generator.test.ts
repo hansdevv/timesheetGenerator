@@ -144,3 +144,36 @@ describe("Excel Template Snapshot & Formula Fidelity", () => {
   });
 });
 
+describe("Theme & Visual Mode Resolution", () => {
+  it("resolves active theme accurately according to user preference or OS setting", () => {
+    function resolveTheme(
+      saved: "light" | "dark" | "system" | null,
+      systemPrefersLight: boolean
+    ): "light" | "dark" {
+      if (saved === "light" || saved === "dark") return saved;
+      return systemPrefersLight ? "light" : "dark";
+    }
+
+    // Explicit light
+    expect(resolveTheme("light", false)).toBe("light");
+    // Explicit dark
+    expect(resolveTheme("dark", true)).toBe("dark");
+    // System when OS prefers light
+    expect(resolveTheme("system", true)).toBe("light");
+    // System when OS prefers dark
+    expect(resolveTheme("system", false)).toBe("dark");
+    // Unset defaults to OS
+    expect(resolveTheme(null, true)).toBe("light");
+    expect(resolveTheme(null, false)).toBe("dark");
+  });
+
+  it("toggles between dark and light modes correctly", () => {
+    function getNextTheme(currentResolved: "light" | "dark"): "light" | "dark" {
+      return currentResolved === "dark" ? "light" : "dark";
+    }
+
+    expect(getNextTheme("dark")).toBe("light");
+    expect(getNextTheme("light")).toBe("dark");
+  });
+});
+

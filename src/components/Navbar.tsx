@@ -48,7 +48,7 @@ const NAV_ITEMS = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { theme, toggle } = useTheme();
+  const { resolvedTheme, toggle, mounted } = useTheme();
 
   return (
     <nav className="navbar">
@@ -121,10 +121,26 @@ export default function Navbar() {
           className="theme-toggle"
           onClick={toggle}
           suppressHydrationWarning
-          title={theme === "dark" ? "Beralih ke mode terang (Light mode)" : "Beralih ke mode gelap (Dark mode)"}
-          aria-label={theme === "dark" ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
+          title={
+            !mounted
+              ? "Ganti tema tampilan"
+              : resolvedTheme === "dark"
+                ? "Beralih ke mode terang (Light mode)"
+                : "Beralih ke mode gelap (Dark mode)"
+          }
+          aria-label={
+            !mounted
+              ? "Ganti tema tampilan"
+              : resolvedTheme === "dark"
+                ? "Beralih ke mode terang"
+                : "Beralih ke mode gelap"
+          }
         >
-          {theme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
+          {mounted && resolvedTheme === "light" ? (
+            <MoonIcon size={16} />
+          ) : (
+            <SunIcon size={16} />
+          )}
         </button>
       </div>
     </nav>

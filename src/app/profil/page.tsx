@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import type { Profile, HolidayItem } from "@/lib/schemas";
 import { ProfileSchema } from "@/lib/schemas";
 import { useAppStore, DEFAULT_PROFILE } from "@/lib/storage";
+import { useTheme, type Theme } from "@/lib/theme-context";
 import {
   UserIcon,
   BriefcaseIcon,
@@ -16,6 +17,9 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
   DownloadIcon,
+  SunIcon,
+  MoonIcon,
+  MonitorIcon,
 } from "@/components/Icons";
 
 export default function ProfilPage() {
@@ -29,6 +33,8 @@ export default function ProfilPage() {
     exportBackupJson,
     importBackupJson,
   } = useAppStore();
+
+  const { theme, resolvedTheme, setTheme, mounted } = useTheme();
 
   const [form, setForm] = useState<Profile>(DEFAULT_PROFILE);
   const [newHolidayDate, setNewHolidayDate] = useState("");
@@ -471,6 +477,133 @@ export default function ProfilPage() {
             </div>
           </div>
         </form>
+
+        {/* Pengaturan Tema Tampilan */}
+        <div className="card" style={{ marginBottom: "1.25rem" }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">
+                <div className="card-icon">
+                  <SunIcon size={15} />
+                </div>
+                <span>Tema &amp; Tampilan Aplikasi</span>
+              </div>
+              <div className="card-subtitle">
+                Pilih tema tampilan yang paling nyaman untuk Anda. Pengaturan tersimpan otomatis di browser lokal.
+              </div>
+            </div>
+            {mounted && (
+              <span
+                style={{
+                  fontSize: "0.78rem",
+                  color: "var(--text-mid)",
+                  background: "var(--stat-bg)",
+                  border: "1px solid var(--border)",
+                  padding: "4px 10px",
+                  borderRadius: "9999px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span>Tema aktif:</span>
+                <strong style={{ color: "var(--text-hi)", textTransform: "capitalize" }}>
+                  {resolvedTheme === "dark" ? "Mode Gelap" : "Mode Terang"}
+                  {theme === "system" && " (Sistem)"}
+                </strong>
+              </span>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "12px",
+            }}
+          >
+            {[
+              {
+                id: "light" as Theme,
+                title: "Mode Terang",
+                desc: "Latar putih bersih dengan kontras tinggi, cocok di pencahayaan terang.",
+                icon: <SunIcon size={20} />,
+              },
+              {
+                id: "dark" as Theme,
+                title: "Mode Gelap",
+                desc: "Nuansa obsidian slate yang nyaman di mata untuk bekerja lama.",
+                icon: <MoonIcon size={20} />,
+              },
+              {
+                id: "system" as Theme,
+                title: "Ikuti Sistem (Otomatis)",
+                desc: "Menyesuaikan otomatis dengan mode terang/gelap pada perangkat Anda.",
+                icon: <MonitorIcon size={20} />,
+              },
+            ].map((opt) => {
+              const isSelected = mounted && theme === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    setTheme(opt.id);
+                    showToast(`Tema diubah ke ${opt.title}`, "info");
+                  }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: "8px",
+                    padding: "1rem",
+                    borderRadius: "var(--radius-sm)",
+                    background: isSelected ? "var(--accent-dim)" : "var(--bg-card-subtle)",
+                    border: `1.5px solid ${isSelected ? "var(--accent)" : "var(--border)"}`,
+                    color: "inherit",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                    <div
+                      style={{
+                        color: isSelected ? "var(--accent-bright)" : "var(--text-mid)",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {opt.icon}
+                    </div>
+                    {isSelected && (
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "var(--accent-bright)",
+                          background: "var(--accent-dim-border)",
+                          padding: "2px 7px",
+                          borderRadius: "9999px",
+                        }}
+                      >
+                        Dipilih
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: "0.88rem", color: "var(--text-hi)" }}>
+                      {opt.title}
+                    </div>
+                    <div style={{ fontSize: "0.77rem", color: "var(--text-mid)", marginTop: "2px", lineHeight: 1.4 }}>
+                      {opt.desc}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Daftar Hari Libur Nasional & Cuti Bersama */}
         <div className="card" style={{ marginBottom: "1.25rem" }}>

@@ -3,6 +3,8 @@
 /* ─── Color & Design Tokens ───────────────────────────────── */
 :root,
 [data-theme="dark"] {
+  color-scheme: dark;
+
   /* Surface palette — Deep Slate / Obsidian */
   --bg-base: #090d16;
   --bg-surface: #0f1523;
@@ -98,6 +100,8 @@
 
 /* ─── Light Mode ──────────────────────────────────────────── */
 [data-theme="light"] {
+  color-scheme: light;
+
   /* Crisp, corporate light palette */
   --bg-base: #f8fafc;
   --bg-surface: #ffffff;
@@ -207,6 +211,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Scrollbar */

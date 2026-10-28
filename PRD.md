@@ -106,7 +106,30 @@ Pengguna utama v1: individu (satu profil per browser).
 | FR-11 | Backup/restore data JSON | Should |
 | FR-12 | Tarik data lembur dari timesheet ke SPL | Should |
 | FR-13 | Tanda tangan gambar pada dokumen | Could |
-| FR-14 | Dark mode | Could |
+| FR-14 | Dark / Light Mode (Tema Tampilan) dengan dukungan Light, Dark, dan System (Otomatis) | Must |
+
+### 6.1 Spesifikasi Fitur Dark / Light Mode (FR-14)
+
+Sistem tema tampilan dirancang untuk kenyamanan visual pengguna dalam berbagai kondisi pencahayaan kerja:
+
+1. **Pilihan Mode Tema:**
+   - **Mode Gelap (Dark Mode):** Palette obsidian slate (`#090d16`, `#131b2e`) dengan aksen safir (`#3b82f6`) yang ramah mata saat bekerja dalam kondisi minim cahaya atau malam hari.
+   - **Mode Terang (Light Mode):** Palette putih bersih dan abu-abu korporat (`#ffffff`, `#f8fafc`, `#e2e8f0`) dengan kontras teks tinggi (`#0f172a`, `#334155`), optimal untuk pencahayaan ruangan kantor terang.
+   - **Ikuti Sistem (System/Auto):** Mengikuti preferensi tema sistem operasi perangkat pengguna secara real-time via `window.matchMedia('(prefers-color-scheme: light)')`.
+
+2. **Kontrol Antarmuka (UI Controls):**
+   - **Navbar Quick-Toggle:** Tombol switch cepat di sudut kanan atas navbar dengan ikon dinamis (`SunIcon` saat gelap, `MoonIcon` saat terang) dan tooltip informatif.
+   - **Pengaturan Lengkap di Halaman Profil:** Kartu pemilihan visual 3 opsi (Terang, Gelap, Sistem) dengan indikator status aktif dan penjelasan peruntukan.
+
+3. **Pencegahan Kedipan Tampilan (Anti-FOUC & Hydration Safe):**
+   - Inisialisasi tema synchronous menggunakan script ringan (`public/theme-init.js`) pada `<head>` sebelum rendering DOM utama.
+   - Sepenuhnya mematuhi prinsip keamanan PRD: **tanpa `dangerouslySetInnerHTML`**.
+   - Sinkronisasi CSS native `color-scheme: dark | light` untuk scrollbar, datepicker, dan kontrol bawaan browser.
+
+4. **Persistensi & Aksesibilitas:**
+   - Preferensi tema disimpan di `localStorage` (`ts-theme`).
+   - Kontras rasio memenuhi standar WCAG 2.1 AA di seluruh komponen: teks, form input, tabel timesheet, badge status, dan dialog modal.
+   - Transisi warna halus (`0.2s ease`) untuk perpindahan mode yang mulus.
 
 ## 7. Non-Functional Requirements
 
@@ -188,7 +211,8 @@ timesheet-generator/
 │  │  ├─ timesheet.xlsx
 │  │  ├─ spl.xlsx
 │  │  └─ izin.xlsx
-│  └─ data/holidays-2026.json
+│  ├─ data/holidays-2026.json
+│  └─ theme-init.js             # Skrip inisialisasi synchronous anti-FOUC
 ├─ src/
 │  ├─ app/
 │  │  ├─ layout.tsx
@@ -199,11 +223,12 @@ timesheet-generator/
 │  │  ├─ izin/page.tsx
 │  │  └─ riwayat/page.tsx
 │  ├─ components/
-│  │  ├─ forms/
-│  │  ├─ preview/
-│  │  └─ ui/
+│  │  ├─ Navbar.tsx
+│  │  ├─ TimesheetGenerator.tsx
+│  │  └─ Icons.tsx
 │  ├─ lib/
 │  │  ├─ schemas/            # Zod schema per dokumen
+│  │  ├─ theme-context.tsx   # Provider context tema (Light, Dark, System)
 │  │  ├─ excel/              # ExcelJS: loader, filler, mapping
 │  │  ├─ pdf/                # komponen @react-pdf per dokumen
 │  │  ├─ calc/               # jam kerja, lembur, hari kerja

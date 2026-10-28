@@ -26,6 +26,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
   return (
     <html
       lang="id"
@@ -34,6 +36,9 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
+      <head>
+        <script src={`${basePath}/theme-init.js`} />
+      </head>
       <body
         className="app-layout"
         style={{ fontFamily: "var(--font-inter, 'Inter', system-ui, sans-serif)" }}
