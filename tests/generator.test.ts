@@ -6,6 +6,7 @@ import {
   toRomanMonth,
   formatDateId,
   formatIzinDateRange,
+  calcTotalSPLHours,
 } from "../src/lib/calc";
 import { generateMonthRows, summarizeTimesheet, isOvertimeRow } from "../src/lib/types";
 import { SAMPLE_HEADER, getSampleTimesheetRows, getSampleSPLData, getSampleIzinData } from "../src/lib/sample-data";
@@ -51,6 +52,21 @@ describe("Calculation Utilities (calc)", () => {
     ).toBe(4);
     // Spanning a weekend: Nov 6 (Fri) to Nov 9 (Mon) = 2 working days
     expect(calcWorkingDays("2026-11-06", "2026-11-09", [])).toBe(2);
+  });
+
+  it("calculates total SPL overtime hours accurately in hours and HMS", () => {
+    const single = calcTotalSPLHours([
+      { startTime: "09:00:00", endTime: "18:00:00" },
+    ]);
+    expect(single.totalHours).toBe(8);
+    expect(single.totalHMS).toBe("8:00:00");
+
+    const multi = calcTotalSPLHours([
+      { startTime: "09:00:00", endTime: "18:00:00" },
+      { startTime: "17:00:00", endTime: "20:00:00" },
+    ]);
+    expect(multi.totalHours).toBe(11);
+    expect(multi.totalHMS).toBe("11:00:00");
   });
 
   it("formats Indonesian dates and Izin date ranges accurately", () => {
@@ -121,6 +137,7 @@ describe("Excel Template Snapshot & Formula Fidelity", () => {
     expect(i15.formula).toBe("(H15-F15)-(1/24)");
     const i16 = ws.getCell("I16").value as ExcelJS.CellFormulaValue;
     expect(i16.formula).toBe("SUM(I15)");
+    expect(ws.getCell("C16").value).toBe("Total Keseluruhan Jam Lembur");
   });
 
   it("builds Permohonan Izin workbook matching sample Permohonan Izin_06 November 2026_901513_Mohamad Burhanudin.xlsx", async () => {

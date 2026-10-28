@@ -70,6 +70,7 @@ Pengguna utama v1: individu (satu profil per browser).
 
 ### 5.3 SPL (Surat Perintah Lembur)
 - Per baris: tanggal lembur, jam mulai, jam selesai, durasi (otomatis), uraian pekerjaan.
+- **Total Keseluruhan Jam Lembur:** dihitung dan ditampilkan otomatis dalam format desimal jam dan HH:MM:SS pada ringkasan metrik, tabel input, pratinjau dokumen kertas (*sheet preview*), baris total tabel Excel (C16/I16), serta ekspor PDF resmi.
 - Blok tanda tangan: pemberi perintah, pekerja, penyetuju.
 - Opsi: tarik data lembur dari timesheet yang sudah diisi.
 
@@ -97,7 +98,7 @@ Pengguna utama v1: individu (satu profil per browser).
 | FR-02 | Timesheet menghasilkan grid sesuai bulan dan tahun terpilih | Must |
 | FR-03 | Total jam, hari kerja, dan lembur dihitung otomatis | Must |
 | FR-04 | Hari libur dan akhir pekan terdeteksi otomatis | Must |
-| FR-05 | SPL mendukung banyak pekerja dalam satu surat | Must |
+| FR-05 | SPL mendukung banyak penugasan lembur dan menghitung Total Keseluruhan Jam Lembur otomatis | Must |
 | FR-06 | Surat izin menghitung jumlah hari kerja otomatis | Must |
 | FR-07 | Ekspor Excel memakai file template asli sebagai basis | Must |
 | FR-08 | Ekspor PDF dengan layout setara template | Must |

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import type { SPLData, SPLEntry } from "@/lib/types";
 import { calcHours, loadTimesheetDraft, isOvertimeRow, formatTimeWithSeconds } from "@/lib/types";
-import { formatDateId } from "@/lib/calc";
+import { formatDateId, calcTotalSPLHours } from "@/lib/calc";
 import { useAppStore } from "@/lib/storage";
 import { exportSPLExcel } from "@/lib/excel-export";
 import { exportSPLPDF } from "@/lib/pdf-export";
@@ -30,6 +30,10 @@ export default function SPLPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "warning" | "info" } | null>(null);
+
+  const totalSPL = useMemo(() => {
+    return calcTotalSPLHours(data.entries);
+  }, [data.entries]);
 
   useEffect(() => {
     if (splDraft && splDraft.entries?.length > 0) {
@@ -325,6 +329,48 @@ export default function SPLPage() {
           </div>
         </div>
 
+        {/* Summary Metric Cards */}
+        <div className="stats-grid" style={{ marginBottom: "1.25rem" }}>
+          <div className="stat-card stat-card-highlight">
+            <div className="stat-header">
+              <span className="stat-label">TOTAL KESELURUHAN JAM LEMBUR</span>
+              <span className="stat-icon" style={{ color: "var(--accent-bright)" }}>
+                <ClockIcon size={16} />
+              </span>
+            </div>
+            <div className="stat-value" style={{ color: "var(--accent-bright)" }}>
+              {totalSPL.totalHours} <span style={{ fontSize: "0.95rem", fontWeight: 500 }}>Jam</span>
+            </div>
+            <div className="stat-subtext" style={{ fontFamily: "var(--font-mono, monospace)" }}>
+              Format Waktu: {totalSPL.totalHMS}
+            </div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-label">JUMLAH HARI PENUGASAN</span>
+              <span className="stat-icon">
+                <FileTextIcon size={16} />
+              </span>
+            </div>
+            <div className="stat-value">{data.entries.length} <span style={{ fontSize: "0.95rem", fontWeight: 500 }}>Hari</span></div>
+            <div className="stat-subtext">Rincian penugasan dalam SPL</div>
+          </div>
+
+          <div className="stat-card">
+            <div className="stat-header">
+              <span className="stat-label">PEGAWAI DITUGASKAN</span>
+              <span className="stat-icon">
+                <UserIcon size={16} />
+              </span>
+            </div>
+            <div className="stat-value" style={{ fontSize: "1.05rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {data.name || "Pegawai"}
+            </div>
+            <div className="stat-subtext">NPP: {data.npp || "-"} • {data.department || "-"}</div>
+          </div>
+        </div>
+
         {/* Pegawai Card */}
         <div className="card" style={{ marginBottom: "1.25rem" }}>
           <div className="card-header">
@@ -398,8 +444,25 @@ export default function SPLPage() {
                 </div>
                 <span>Daftar Hari &amp; Tugas Lembur ({data.entries.length} Baris)</span>
               </div>
-              <div className="card-subtitle">
-                Isi tanggal lembur, rentang waktu, dan rincian pekerjaan yang dilakukan
+              <div className="card-subtitle" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "4px" }}>
+                <span>Isi tanggal lembur, rentang waktu, dan rincian pekerjaan yang dilakukan</span>
+                <span
+                  style={{
+                    background: "var(--amber-dim)",
+                    border: "1px solid var(--amber-dim-border)",
+                    color: "var(--amber-text)",
+                    padding: "1px 8px",
+                    borderRadius: "9999px",
+                    fontSize: "0.74rem",
+                    fontWeight: 700,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <ClockIcon size={11} />
+                  <span>Total Keseluruhan: {totalSPL.totalHours} Jam ({totalSPL.totalHMS})</span>
+                </span>
               </div>
             </div>
             <button type="button" className="btn btn-primary btn-sm" onClick={addEntry}>
@@ -678,6 +741,15 @@ export default function SPLPage() {
                         </tr>
                       );
                     })}
+                    <tr style={{ background: "#f8fafc", fontWeight: 700 }}>
+                      <td colSpan={4} style={{ border: "1px solid #000", padding: "6px 8px", textAlign: "center", fontWeight: 700 }}>
+                        Total Keseluruhan Jam Lembur
+                      </td>
+                      <td style={{ border: "1px solid #000", padding: "6px", textAlign: "center", fontWeight: 700, fontFamily: "monospace" }}>
+                        {totalSPL.totalHMS}
+                      </td>
+                      <td style={{ border: "1px solid #000", padding: "6px" }} />
+                    </tr>
                   </tbody>
                 </table>
 
@@ -718,6 +790,10 @@ export default function SPLPage() {
               </div>
               <div style={{ fontSize: "0.82rem", color: "var(--text-mid)", marginTop: "2px" }}>
                 Nama file otomatis: <code>{`Surat Perintah Lembur_${data.entries[0]?.date ? formatDateId(data.entries[0].date) : "Lembur"}_${data.npp}_${data.name}.xlsx`}</code>
+              </div>
+              <div style={{ fontSize: "0.84rem", fontWeight: 600, color: "var(--amber-text)", marginTop: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <ClockIcon size={14} />
+                <span>Total Keseluruhan Jam Lembur: <strong>{totalSPL.totalHours} Jam ({totalSPL.totalHMS})</strong> • {data.entries.length} Hari Lembur</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>

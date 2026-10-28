@@ -154,3 +154,37 @@ export function formatIzinDateRange(
   };
 }
 
+/**
+ * Calculate total overtime hours from SPL entries in decimal and HMS format
+ */
+export function calcTotalSPLHours(
+  entries: Array<{ startTime?: string; endTime?: string; totalHours?: number }>
+): { totalHours: number; totalHMS: string } {
+  let totalSeconds = 0;
+
+  for (const entry of entries) {
+    if (entry.startTime && entry.endTime) {
+      const [sh, sm, ss] = entry.startTime.split(":").map(Number);
+      const [eh, em, es] = entry.endTime.split(":").map(Number);
+      const startSec = (sh || 0) * 3600 + (sm || 0) * 60 + (ss || 0);
+      let endSec = (eh || 0) * 3600 + (em || 0) * 60 + (es || 0);
+      if (endSec < startSec) endSec += 24 * 3600;
+      const diffSec = endSec - startSec;
+      // 1-hour break deduction for shifts >= 5 hours matching Excel (H-F)-(1/24)
+      const netSec = diffSec >= 5 * 3600 ? diffSec - 3600 : diffSec;
+      totalSeconds += Math.max(0, netSec);
+    } else if (entry.totalHours) {
+      totalSeconds += Number(entry.totalHours) * 3600;
+    }
+  }
+
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  const totalHMS = `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const totalHours = Math.round((totalSeconds / 3600) * 100) / 100;
+
+  return { totalHours, totalHMS };
+}
+
+

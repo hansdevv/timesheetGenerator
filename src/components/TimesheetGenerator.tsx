@@ -361,6 +361,17 @@ export default function TimesheetGenerator() {
     return rows.filter(isOvertimeRow);
   }, [rows]);
 
+  const totalSPLOvertimeHours = useMemo(() => {
+    return overtimeRows.reduce((acc, row) => {
+      if (row.isWeekend) {
+        return acc + (row.totalHours || 0);
+      }
+      const otStart = row.overtimeStartTime || "17:00";
+      const otEnd = row.overtimeEndTime || row.endTime || "20:00";
+      return acc + calcHours(otStart, otEnd);
+    }, 0);
+  }, [overtimeRows]);
+
   // Empty activities count on working days
   const emptyActivityCount = useMemo(() => {
     return rows.filter((r) => r.status === "P" && (!r.activity || r.activity.trim() === "")).length;
@@ -1496,10 +1507,26 @@ export default function TimesheetGenerator() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div className="alert alert-info">
-                  <SparklesIcon size={16} />
-                  <span>
-                    Ditemukan <strong>{overtimeRows.length} penugasan lembur</strong> (hari kerja &amp; akhir pekan). Unduh formulir SPL resmi Adidata per tanggal tugas di bawah ini.
+                <div className="alert alert-info" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <SparklesIcon size={16} />
+                    <span>
+                      Ditemukan <strong>{overtimeRows.length} penugasan lembur</strong> (hari kerja &amp; akhir pekan). Unduh formulir SPL resmi Adidata per tanggal tugas di bawah ini.
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      background: "var(--amber-dim)",
+                      border: "1px solid var(--amber-dim-border)",
+                      color: "var(--amber-text)",
+                      padding: "3px 10px",
+                      borderRadius: "9999px",
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Total Keseluruhan: {totalSPLOvertimeHours} Jam Lembur
                   </span>
                 </div>
 
